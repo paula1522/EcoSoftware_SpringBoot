@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud Rechazada</title>
+</head>
+<body style="margin:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color:#f6f6f6; padding:0;">
+<div style="max-width: 600px; margin: 0 auto; background:#ffffff; border-radius:18px; overflow:hidden;
+            box-shadow: 0 8px 24px rgba(231,76,60,0.12);">
+    
+    <!-- Header con gradiente rojo -->
+    <div style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding:30px 20px; text-align:center;">
+        
+        <h2 style="color:#ffffff; margin:20px 0 8px 0; font-size:22px; font-weight:600; letter-spacing:-0.5px;">
+             Solicitud Rechazada
+        </h2>
+        <p style="color:rgba(255,255,255,0.9); margin:0; font-size:15px;">
+            Hola <strong th:text="${nombre}"></strong>
+        </p>
+    </div>
+    
+    <!-- Contenido -->
+    <div style="padding:30px 20px;">
+        <p style="font-size:14px; color:#666; margin:0 0 25px 0; line-height:1.7; text-align:center;">
+            Lamentamos informarte que tu solicitud de recolección ha sido rechazada.
+        </p>
+        
+        <!-- Detalles de la solicitud -->
+        <div style="background:#fff8f7; border-radius:12px; padding:18px; border:1px solid #f5e6e3; margin-bottom:18px;">
+            <h3 style="color:#e74c3c; font-size:15px; margin:0 0 12px 0; font-weight:600;">
+                📋 Detalles de la Solicitud
+            </h3>
+            
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="padding:6px 0; font-size:14px; color:#e74c3c; font-weight:600; vertical-align:top; width:40%;">
+                        ID:
+                    </td>
+                    <td style="padding:6px 0; font-size:14px; color:#333; text-align:right; word-break:break-word;">
+                        <span th:text="${idSolicitud}"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0; font-size:14px; color:#e74c3c; font-weight:600; vertical-align:top; border-top:1px solid #e9ecef;">
+                        Tipo de Residuo:
+                    </td>
+                    <td style="padding:6px 0; font-size:14px; color:#333; text-align:right; border-top:1px solid #e9ecef; word-break:break-word;">
+                        <span th:text="${tipoResiduo}"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0; font-size:14px; color:#e74c3c; font-weight:600; vertical-align:top; border-top:1px solid #e9ecef;">
+                        Cantidad:
+                    </td>
+                    <td style="padding:6px 0; font-size:14px; color:#333; text-align:right; border-top:1px solid #e9ecef; word-break:break-word;">
+                        <span th:text="${cantidad}"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0; font-size:14px; color:#e74c3c; font-weight:600; vertical-align:top; border-top:1px solid #e9ecef;">
+                        Localidad:
+                    </td>
+                    <td style="padding:6px 0; font-size:14px; color:#333; text-align:right; border-top:1px solid #e9ecef; word-break:break-word;">
+                        <span th:text="${localidad}"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0; font-size:14px; color:#e74c3c; font-weight:600; vertical-align:top; border-top:1px solid #e9ecef;">
+                        Ubicación:
+                    </td>
+                    <td style="padding:6px 0; font-size:14px; color:#333; text-align:right; border-top:1px solid #e9ecef; word-break:break-word;">
+                        <span th:text="${ubicacion}"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0; font-size:14px; color:#e74c3c; font-weight:600; vertical-align:top; border-top:1px solid #e9ecef;">
+                        Fecha Programada:
+                    </td>
+                    <td style="padding:6px 0; font-size:14px; color:#333; text-align:right; border-top:1px solid #e9ecef; word-break:break-word;">
+                        <span th:text="${fechaProgramada}"></span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Motivo del rechazo -->
+        <div style="background:#fff8f7; border-radius:12px; padding:18px; border:1px solid #f5e6e3; margin-bottom:25px;">
+            <h3 style="color:#e74c3c; font-size:15px; margin:0 0 12px 0; font-weight:600;">
+                🚫 Motivo del Rechazo
+            </h3>
+            
+            <p style="font-size:14px; color:#666; margin:0; line-height:1.6; word-wrap:break-word;">
+                <span th:text="${motivoRechazo}"></span>
+            </p>
+        </div>
+        
+        <!-- Próximos pasos -->
+        <div style="text-align:center; padding:20px 18px; background:linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%); 
+                    border-radius:12px; border:2px dashed #e74c3c;">
+            <p style="margin:0; color:#e74c3c; font-size:15px; font-weight:600;">
+                📝 ¿Qué puedes hacer?
+            </p>
+            <p style="margin:10px 0 0 0; color:#666; font-size:14px; line-height:1.6;">
+                Revisa los detalles de tu solicitud y vuelve a intentarlo. Si tienes dudas, contacta a nuestro equipo de soporte.
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="border-top:1px solid #e9ecef; margin-top:30px; padding-top:20px; text-align:center;">
+            <p style="margin:0; color:#999; font-size:12px;">
+                EcoSoftware - Gestión Inteligente de Residuos ♻️
+            </p>
+            <p style="margin:8px 0 0 0; color:#bbb; font-size:11px;">
+                Este es un correo automático. Por favor, no responder a este mensaje.
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

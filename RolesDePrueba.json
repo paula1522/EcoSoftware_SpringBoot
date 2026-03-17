@@ -1,0 +1,26 @@
+[
+  {
+    "nombre": "Administrador",
+    "descripcion": "Rol con permisos administrativos",
+    "tipo": "Administrador",
+    "estado": true
+  },
+  {
+    "nombre": "Ciudadano",
+    "descripcion": "Rol para usuarios ciudadanos",
+    "tipo": "Ciudadano",
+    "estado": true
+  },
+  {
+    "nombre": "Empresa",
+    "descripcion": "Rol para empresas",
+    "tipo": "Empresa",
+    "estado": true
+  },
+  {
+    "nombre": "Reciclador",
+    "descripcion": "Rol para recicladores",
+    "tipo": "Reciclador",
+    "estado": true
+  }
+]

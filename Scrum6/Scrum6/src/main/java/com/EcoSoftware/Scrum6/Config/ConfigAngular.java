@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class ConfigAngular implements WebMvcConfigurer {
 
     // Lee los orígenes permitidos desde application.properties (separados por coma)
-    @Value("${app.cors.allowed-origins:http://localhost:4200}")
+    @Value("${app.cors.allowed-origins:https://ecosoftware.azurewebsites.net}")
     private String allowedOrigins;
 
     @Override

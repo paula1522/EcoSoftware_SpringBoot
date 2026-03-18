@@ -13,7 +13,7 @@ import com.EcoSoftware.Scrum6.Service.NoticiaService;
 
 @RestController
 @RequestMapping("/api/noticias")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "https://ecosoftware.azurewebsites.net")
 public class NoticiaController {
 
     @Autowired

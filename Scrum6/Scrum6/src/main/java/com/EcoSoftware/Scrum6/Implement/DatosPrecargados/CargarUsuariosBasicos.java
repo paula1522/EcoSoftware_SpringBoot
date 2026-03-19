@@ -8,10 +8,12 @@ import com.EcoSoftware.Scrum6.Repository.UsuarioRepository;
 import com.EcoSoftware.Scrum6.Util.PasswordPolicyUtil;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(2)
 public class CargarUsuariosBasicos implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;

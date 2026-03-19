@@ -4,9 +4,11 @@ import com.EcoSoftware.Scrum6.Entity.RolEntity;
 import com.EcoSoftware.Scrum6.Repository.RolRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(1)
 public class CargarRoles implements CommandLineRunner {
 
     private final RolRepository rolRepository;

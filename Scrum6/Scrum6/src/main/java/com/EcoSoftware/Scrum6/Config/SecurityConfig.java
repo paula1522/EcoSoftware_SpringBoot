@@ -75,7 +75,10 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Origen específico (no wildcard) porque usamos credenciales
-        configuration.setAllowedOrigins(List.of("https://ecosoftware.azurewebsites.net"));
+       configuration.setAllowedOrigins(List.of(
+    "http://localhost:4200",
+    "https://ecosoftware.azurewebsites.net"
+));
 
         // Métodos permitidos
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));

@@ -76,7 +76,6 @@ public class SecurityConfig {
 
         // Origen específico (no wildcard) porque usamos credenciales
        configuration.setAllowedOrigins(List.of(
-    "http://localhost:4200",
     "https://ecosoftware.azurewebsites.net"
 ));
 

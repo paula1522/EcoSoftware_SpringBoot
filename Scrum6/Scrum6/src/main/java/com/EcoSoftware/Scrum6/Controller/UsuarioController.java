@@ -45,24 +45,26 @@ public class UsuarioController {
     //  CARGAR EXCEL POR ROL
     // ============================================
     @PostMapping("/cargar/{rol}")
-    public ResponseEntity<?> cargarExcelPorRol(
-            @PathVariable String rol,
-            @RequestParam("archivo") MultipartFile archivo) {
+public ResponseEntity<?> cargarExcelPorRol(
+        @PathVariable String rol,
+        @RequestParam("archivo") MultipartFile archivo) {
 
-        try {
-            List<String> errores = usuarioService.cargarUsuariosDesdeExcel(rol, archivo);
+    try {
+        List<String> errores = usuarioService.cargarUsuariosDesdeExcel(rol, archivo);
 
-            if (errores.isEmpty()) {
-                return ResponseEntity.ok("Usuarios cargados correctamente");
-            }
+        return ResponseEntity.ok().body(Map.of(
+                "mensaje", "Carga masiva completada",
+                "errores", errores
+        ));
 
-            return ResponseEntity.badRequest().body(errores);
-
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body("Error cargando archivo: " + e.getMessage());
-        }
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(Map.of(
+                        "mensaje", "Error cargando archivo",
+                        "detalle", e.getMessage()
+                ));
     }
+}
 
 
 
@@ -211,6 +213,12 @@ public ResponseEntity<?> subirDocumento(
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
+    @PutMapping("/estado/{id}")
+public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestParam boolean estado) {
+    usuarioService.cambiarEstado(id);
+    return ResponseEntity.ok("Estado actualizado correctamente");
+}
 
     @GetMapping("/ping")
     public ResponseEntity<String> ping() {

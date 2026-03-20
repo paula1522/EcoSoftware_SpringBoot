@@ -6,9 +6,11 @@ import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -17,6 +19,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -174,83 +177,79 @@ public class UsuarioServiceImpl implements UsuarioService {
         return usuarioRepository.countByEstadoRegistro(EstadoRegistro.PENDIENTE_REVISAR);
     }
 
-
     @Override
-public String subirDocumento(MultipartFile file, Long idUsuario, String tipo) throws IOException {
+    public String subirDocumento(MultipartFile file, Long idUsuario, String tipo) throws IOException {
 
-    if (file == null || file.isEmpty()) {
-        throw new RuntimeException("Archivo no enviado");
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Archivo no enviado");
+        }
+
+        UsuarioEntity usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        String folder = "usuarios/" + idUsuario;
+        String publicId = tipo + "_" + System.currentTimeMillis();
+
+        String url = cloudinaryService.upload(file, folder, publicId);
+
+        switch (tipo.toUpperCase()) {
+
+            case "CEDULA":
+                usuario.setDocumento(url);
+                break;
+
+            case "CERTIFICADO":
+                usuario.setCertificaciones(url);
+                break;
+
+            case "RUT":
+                usuario.setRut(url);
+                break;
+
+            case "CAMARA":
+                usuario.setCamara_comercio(url);
+                break;
+
+            case "FOTO_PERFIL":
+                usuario.setImagen_perfil(url);
+                break;
+
+            default:
+                throw new RuntimeException("Tipo de documento no válido");
+        }
+
+        validarEstadoDocumentacion(usuario);
+
+        usuario.setFechaActualizacion(LocalDateTime.now());
+        usuarioRepository.save(usuario);
+
+        return url;
     }
 
-    UsuarioEntity usuario = usuarioRepository.findById(idUsuario)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    private void validarEstadoDocumentacion(UsuarioEntity usuario) {
 
-    String folder = "usuarios/" + idUsuario;
-    String publicId = tipo + "_" + System.currentTimeMillis();
+        String rol = usuario.getRol().getTipo().name();
 
-    String url = cloudinaryService.upload(file, folder, publicId);
+        boolean documentosCompletos = false;
 
-    switch (tipo.toUpperCase()) {
+        if (rol.equals("Empresa")) {
 
-        case "CEDULA":
-            usuario.setDocumento(url);
-            break;
+            documentosCompletos = usuario.getDocumento() != null &&
+                    usuario.getRut() != null &&
+                    usuario.getCamara_comercio() != null;
 
-        case "CERTIFICADO":
-            usuario.setCertificaciones(url);
-            break;
+        } else if (rol.equals("Reciclador")) {
 
-        case "RUT":
-            usuario.setRut(url);
-            break;
+            documentosCompletos = usuario.getDocumento() != null;
+        }
 
-        case "CAMARA":
-            usuario.setCamara_comercio(url);
-            break;
-
-        case "FOTO_PERFIL":
-            usuario.setImagen_perfil(url);
-            break;
-
-        default:
-            throw new RuntimeException("Tipo de documento no válido");
+        if (documentosCompletos) {
+            usuario.setEstadoRegistro(EstadoRegistro.PENDIENTE_REVISAR);
+        } else {
+            usuario.setEstadoRegistro(EstadoRegistro.PENDIENTE_DOCUMENTACION);
+        }
     }
 
-    validarEstadoDocumentacion(usuario);
-
-    usuario.setFechaActualizacion(LocalDateTime.now());
-    usuarioRepository.save(usuario);
-
-    return url;
-}
-
-private void validarEstadoDocumentacion(UsuarioEntity usuario) {
-
-    String rol = usuario.getRol().getTipo().name();
-
-    boolean documentosCompletos = false;
-
-    if (rol.equals("Empresa")) {
-
-        documentosCompletos =
-                usuario.getDocumento() != null &&
-                usuario.getRut() != null &&
-                usuario.getCamara_comercio() != null;
-
-    } else if (rol.equals("Reciclador")) {
-
-        documentosCompletos =
-                usuario.getDocumento() != null;
-    }
-
-    if (documentosCompletos) {
-        usuario.setEstadoRegistro(EstadoRegistro.PENDIENTE_REVISAR);
-    } else {
-        usuario.setEstadoRegistro(EstadoRegistro.PENDIENTE_DOCUMENTACION);
-    }
-}
-
-   
     // ========================================================
     // GENERAR PLANTILLA POR ROL
     // ========================================================
@@ -308,66 +307,126 @@ private void validarEstadoDocumentacion(UsuarioEntity usuario) {
     // ========================================================
     // CARGAR ARCHIVO EXCEL POR ROL
     // ========================================================
-    @Override
-    public List<String> cargarUsuariosDesdeExcel(String rol, MultipartFile file) {
 
-        List<String> errores = new ArrayList<>();
+   @Override
+public List<String> cargarUsuariosDesdeExcel(String rol, MultipartFile file) {
+    List<String> errores = new ArrayList<>();
 
-        try (XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream())) {
+    // Sets para detectar duplicados dentro del archivo
+    Set<String> cedulas = new HashSet<>();
+    Set<String> correos = new HashSet<>();
+    Set<String> telefonos = new HashSet<>();
 
-            XSSFSheet sheet = workbook.getSheetAt(0);
+    try (XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream())) {
+        XSSFSheet sheet = workbook.getSheetAt(0);
 
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) continue;
 
-                Row row = sheet.getRow(i);
-                if (row == null)
-                    continue;
+            UsuarioEntity usuario = new UsuarioEntity();
+            List<String> erroresFila = new ArrayList<>();
 
-                try {
-                    UsuarioEntity usuario = new UsuarioEntity();
+            // ------------------------------
+            // 1️⃣ Leer campos del Excel
+            // ------------------------------
+            usuario.setNombre(getCellValueAsString(row, 0));
+            usuario.setCorreo(getCellValueAsString(row, 1));
+            usuario.setContrasena(getCellValueAsString(row, 2));
 
-                    // CAMPOS BASE
-                    usuario.setNombre(getCellValueAsString(row, 0));
-                    usuario.setCorreo(getCellValueAsString(row, 1));
-                    usuario.setContrasena(getCellValueAsString(row, 2));
-                    usuario.setCedula(getCellValueAsString(row, 3));
-                    usuario.setTelefono(getCellValueAsString(row, 4));
-                    usuario.setDireccion(getCellValueAsString(row, 5));
-                    usuario.setLocalidad(getCellValueAsString(row, 6));
+// ------------------------------
+// Validar contraseña
+// ------------------------------
+try {
+    PasswordPolicyUtil.validar(usuario.getContrasena());
+} catch (Exception e) {
+    erroresFila.add("Contraseña inválida");
+}            usuario.setCedula(getCellValueAsString(row, 3));
+            usuario.setTelefono(getCellValueAsString(row, 4));
+            usuario.setDireccion(getCellValueAsString(row, 5));
+            usuario.setLocalidad(getCellValueAsString(row, 6));
 
-                    // CAMPOS SEGÚN ROL
-                    switch (rol.toUpperCase()) {
-                        case "RECICLADOR":
-                            usuario.setZona_de_trabajo(getCellValueAsString(row, 7));
-                            break;
+            // ------------------------------
+            // 2️⃣ Validar duplicados dentro del archivo
+            // ------------------------------
+            if (!cedulas.add(usuario.getCedula()))
+                erroresFila.add("Cédula duplicada en archivo -> " + usuario.getCedula());
 
-                        case "EMPRESA":
-                            usuario.setNit(getCellValueAsString(row, 7));
-                            usuario.setRepresentanteLegal(getCellValueAsString(row, 8));
-                            break;
+            if (!correos.add(usuario.getCorreo()))
+                erroresFila.add("Correo duplicado en archivo -> " + usuario.getCorreo());
 
-                        // Ciudadano y Administrador solo usan campos base
-                    }
+            if (!telefonos.add(usuario.getTelefono()))
+                erroresFila.add("Teléfono duplicado en archivo -> " + usuario.getTelefono());
 
-                    // Buscar rol
-                    RolEntity rolEntity = rolRepository.findByNombreIgnoreCase(rol)
-                            .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
-                    usuario.setRol(rolEntity);
-
-                    // Guardar usuario
-                    usuarioRepository.save(usuario);
-
-                } catch (Exception e) {
-                    errores.add("Fila " + (i + 1) + ": " + e.getMessage());
-                }
+            // ------------------------------
+            // 3️⃣ Campos según rol
+            // ------------------------------
+            switch (rol.toUpperCase()) {
+                case "RECICLADOR":
+                    usuario.setZona_de_trabajo(getCellValueAsString(row, 7));
+                    break;
+                case "EMPRESA":
+                    usuario.setNit(getCellValueAsString(row, 7));
+                    usuario.setRepresentanteLegal(getCellValueAsString(row, 8));
+                    break;
             }
 
-        } catch (IOException e) {
-            throw new RuntimeException("Error procesando archivo Excel", e);
+            // ------------------------------
+            // 4️⃣ Asignar rol
+            // ------------------------------
+            try {
+                RolEntity rolEntity = rolRepository.findByNombreIgnoreCase(rol)
+                        .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+                usuario.setRol(rolEntity);
+            } catch (Exception e) {
+                erroresFila.add("Rol no encontrado: " + rol);
+            }
+
+            // ------------------------------
+            // 5️⃣ Validar contra BD (sin lanzar excepción)
+            // ------------------------------
+            if (usuarioRepository.existsByCedula(usuario.getCedula()))
+                erroresFila.add("Cédula ya existe en BD -> " + usuario.getCedula());
+
+            if (usuarioRepository.existsByCorreo(usuario.getCorreo()))
+                erroresFila.add("Correo ya existe en BD -> " + usuario.getCorreo());
+
+            if (usuarioRepository.existsByTelefono(usuario.getTelefono()))
+                erroresFila.add("Teléfono ya existe en BD -> " + usuario.getTelefono());
+
+            // ------------------------------
+            // 6️⃣ Si hay errores, registrar y saltar fila
+            // ------------------------------
+            if (!erroresFila.isEmpty()) {
+                errores.add("Fila " + (i + 1) + ": " + String.join(" | ", erroresFila));
+                continue;
+            }
+
+            // ------------------------------
+            // 7️⃣ Guardar usuario y capturar errores de BD sin matar la carga
+            // ------------------------------
+            try {
+                // Encriptar contraseña
+usuario.setContrasena(passwordEncoder.encode(usuario.getContrasena()));
+                usuarioRepository.save(usuario);
+            } catch (DataIntegrityViolationException e) {
+                // Captura constraints únicos que puedan fallar en la BD
+                errores.add("Fila " + (i + 1) + ": Error de base de datos -> " + e.getMostSpecificCause().getMessage());
+            } catch (Exception e) {
+                errores.add("Fila " + (i + 1) + ": Error inesperado -> " + e.getMessage());
+            }
         }
 
-        return errores;
+    } catch (IOException e) {
+        throw new RuntimeException("Error procesando archivo Excel", e);
     }
+
+    return errores;
+}
+
+
+
+
 
     // Método auxiliar para leer celdas como String
     private String getCellValueAsString(Row row, int index) {
@@ -429,6 +488,18 @@ private void validarEstadoDocumentacion(UsuarioEntity usuario) {
             throw new RuntimeException("Usuario no encontrado con ID: " + idUsuario);
         }
     }
+
+  @Override
+public void cambiarEstado(Long idUsuario) {
+    UsuarioEntity usuario = usuarioRepository.findById(idUsuario)
+        .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+    usuario.setEstado(!usuario.getEstado()); // 🔥 invierte estado
+
+    usuario.setFechaActualizacion(LocalDateTime.now());
+
+    usuarioRepository.save(usuario);
+}
 
     @Override
     public List<UsuarioDTO> encontrarPorNombre(String nombre) {
@@ -494,10 +565,6 @@ private void validarEstadoDocumentacion(UsuarioEntity usuario) {
                 .map(this::convertirADTO)
                 .toList();
     }
-
-    // ==============================
-    // Exportar usuarios a CSV
-    // ==============================
 
     // ==============================
     // Exportar usuarios a Excel

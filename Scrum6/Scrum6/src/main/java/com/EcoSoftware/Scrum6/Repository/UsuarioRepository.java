@@ -31,6 +31,11 @@ public interface UsuarioRepository extends JpaRepository<UsuarioEntity, Long> {
 
     Optional<UsuarioEntity> findByCorreo(String correo);
 
+
+    boolean existsByCedula(String cedula);
+boolean existsByCorreo(String correo);
+boolean existsByTelefono(String telefono);
+
 List<UsuarioEntity> findByEstadoRegistro(EstadoRegistro estadoRegistro);
 Long countByEstadoRegistro(EstadoRegistro estadoRegistro);
 

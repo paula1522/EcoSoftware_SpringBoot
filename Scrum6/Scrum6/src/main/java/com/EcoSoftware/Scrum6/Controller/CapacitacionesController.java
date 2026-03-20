@@ -66,10 +66,11 @@ public ResponseEntity<?> subirImagen(
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<CapacitacionDTO> obtenerCapacitacion(@PathVariable Long id) {
-        return ResponseEntity.ok(capacitacionesService.obtenerCapacitacionPorId(id));
-    }
+@GetMapping("/{id:\\d+}")
+public ResponseEntity<CapacitacionDTO> obtenerCapacitacion(@PathVariable Long id) {
+    return ResponseEntity.ok(capacitacionesService.obtenerCapacitacionPorId(id));
+}
+
 
     @GetMapping
     public ResponseEntity<List<CapacitacionDTO>> listarCapacitaciones() {
@@ -161,10 +162,26 @@ public ResponseEntity<List<CapacitacionDTO>> obtenerMisCapacitaciones(@PathVaria
     }
 
     // ========== INSCRIPCIONES ==========
-    @PostMapping("/inscripciones")
-    public ResponseEntity<InscripcionDTO> inscribirse(@RequestParam Long usuarioId, @RequestParam Long cursoId) {
-        return ResponseEntity.ok(capacitacionesService.inscribirse(usuarioId, cursoId));
+ @PostMapping("/inscripciones")
+public ResponseEntity<?> inscribirse(
+        @RequestParam Long usuarioId,
+        @RequestParam Long cursoId) {
+
+    try {
+        return ResponseEntity.ok(
+            capacitacionesService.inscribirse(usuarioId, cursoId)
+        );
+    } catch (RuntimeException e) {
+
+        if ("YA_INSCRITO".equals(e.getMessage())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", "YA_INSCRITO"));
+        }
+
+        return ResponseEntity.status(500).body("Error interno");
     }
+}
 
     @PutMapping("/inscripciones/{id}")
     public ResponseEntity<InscripcionDTO> actualizarEstadoInscripcion(@PathVariable Long id,

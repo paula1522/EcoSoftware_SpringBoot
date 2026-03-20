@@ -315,38 +315,72 @@ public String subirEvidencia(MultipartFile file, Long idSolicitud) throws IOExce
 
         return entityToDTO(saved);
     }
+@Override
+public SolicitudRecoleccionDTO actualizarSolicitudConUsuario(SolicitudRecoleccionDTO dto, String correoUsuario) {
+    // 1️⃣ Obtener la solicitud
+    SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(dto.getIdSolicitud())
+            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
-    @Override
-    public SolicitudRecoleccionDTO actualizarSolicitudConUsuario(SolicitudRecoleccionDTO dto, String correoUsuario) {
-        UsuarioEntity usuario = usuarioRepository.findByCorreo(correoUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con el correo: " + correoUsuario));
+    // 2️⃣ Obtener el usuario logueado
+    UsuarioEntity usuarioLogueado = usuarioRepository.findByCorreo(correoUsuario)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(dto.getIdSolicitud())
-                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+    // 3️⃣ Verificar permisos
+    boolean esAdministrador = usuarioLogueado.getRol().getNombre().equals("Administrador");
+    boolean esDuenio = solicitud.getUsuario().getIdUsuario().equals(usuarioLogueado.getIdUsuario());
 
-        if (!solicitud.getUsuario().getIdUsuario().equals(usuario.getIdUsuario())) {
-            throw new RuntimeException("No tienes permiso para modificar esta solicitud");
-        }
-
-        if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
-            throw new RuntimeException("Solo se pueden actualizar solicitudes pendientes");
-        }
-
-        solicitud.setTipoResiduo(dto.getTipoResiduo());
-        solicitud.setCantidad(dto.getCantidad());
-        solicitud.setDescripcion(dto.getDescripcion());
-        solicitud.setLocalidad(dto.getLocalidad());
-        solicitud.setUbicacion(dto.getUbicacion());
-        solicitud.setLatitude(dto.getLatitude());
-        solicitud.setLongitude(dto.getLongitude());
-
-        solicitud.setEvidencia(dto.getEvidencia());
-        solicitud.setFechaProgramada(dto.getFechaProgramada());
-
-        SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
-
-        return entityToDTO(saved);
+    if (!esAdministrador && !esDuenio) {
+        throw new RuntimeException("No tienes permiso para actualizar esta solicitud");
     }
+
+    // 4️⃣ Solo se pueden actualizar solicitudes pendientes
+    if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
+        throw new RuntimeException("Solo se pueden actualizar solicitudes pendientes");
+    }
+
+    // 5️⃣ Actualizar campos
+    solicitud.setTipoResiduo(dto.getTipoResiduo());
+    solicitud.setCantidad(dto.getCantidad());
+    solicitud.setDescripcion(dto.getDescripcion());
+    solicitud.setLocalidad(dto.getLocalidad());
+    solicitud.setUbicacion(dto.getUbicacion());
+    solicitud.setLatitude(dto.getLatitude());
+    solicitud.setLongitude(dto.getLongitude());
+    solicitud.setEvidencia(dto.getEvidencia());
+    solicitud.setFechaProgramada(dto.getFechaProgramada());
+
+    // 6️⃣ Guardar y retornar
+    SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
+    return entityToDTO(saved);
+}
+    @Override
+public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
+
+    SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(solicitudId)
+            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+
+    // Solo el usuario dueño puede cancelar
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    String correoUsuario = auth.getName();
+
+    UsuarioEntity usuario = usuarioRepository.findByCorreo(correoUsuario)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+    if (!solicitud.getUsuario().getIdUsuario().equals(usuario.getIdUsuario())) {
+        throw new RuntimeException("No tienes permiso para cancelar esta solicitud");
+    }
+
+    // Solo se puede cancelar si está pendiente
+    if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
+        throw new RuntimeException("Solo se pueden cancelar solicitudes pendientes");
+    }
+
+    solicitud.setEstadoPeticion(EstadoPeticion.Cancelada);
+
+    SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
+
+    return entityToDTO(saved);
+}
 
     // ==========================================================
     // Método auxiliar para filtrar solicitudes

@@ -43,6 +43,8 @@ public interface UsuarioService {
 
     List<UsuarioDTO> encontrarPorCorreo(String correo);
 
+    void cambiarEstado(Long idUsuario);
+
     // ===========================
     // CARGA MASIVA DE USUARIOS
     // ===========================
@@ -50,6 +52,8 @@ public interface UsuarioService {
     byte[] generarPlantillaExcelPorRol(String rol);
 
     List<String> cargarUsuariosDesdeExcel(String rol, MultipartFile archivo);
+
+    
 
     // ================================
     // MÉTODOS EXPORTACIÓN

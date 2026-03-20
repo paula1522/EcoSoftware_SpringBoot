@@ -47,6 +47,8 @@ public interface SolicitudRecoleccionService {
     // Rechazar una solicitud pendiente, permitiendo registrar un motivo de rechazo
     SolicitudRecoleccionDTO rechazarSolicitud(Long solicitudId, String motivo);
 
+    SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId);
+
     // Actualizar datos de una solicitud (solo permitido si está en estado Pendiente)
     SolicitudRecoleccionDTO actualizarSolicitudConUsuario(SolicitudRecoleccionDTO dto, String correoUsuario);
 

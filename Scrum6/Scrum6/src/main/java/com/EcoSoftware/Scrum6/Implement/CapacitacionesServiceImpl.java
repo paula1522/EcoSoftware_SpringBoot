@@ -66,16 +66,18 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     @Autowired
     private CloudinaryService cloudinaryService;
 
-    /** Verificar si la capacitacion existe por nombre  o descripcion*/
+    /** Verificar si la capacitacion existe por nombre o descripcion */
     @Override
     public boolean existeCapacitacionPorNombre(String nombre) {
-        if (nombre == null || nombre.trim().isEmpty()) return false;
+        if (nombre == null || nombre.trim().isEmpty())
+            return false;
         return capacitacionRepository.existsByNombreIgnoreCase(nombre.trim());
     }
 
     @Override
     public boolean existeCapacitacionPorDescripcion(String descripcion) {
-        if (descripcion == null || descripcion.trim().isEmpty()) return false;
+        if (descripcion == null || descripcion.trim().isEmpty())
+            return false;
         return capacitacionRepository.existsByDescripcionIgnoreCase(descripcion.trim());
     }
 
@@ -83,8 +85,10 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     // UTIL: distancia de Levenshtein / similitud
     // ============================
     private int calcularDistanciaLevenshtein(String a, String b) {
-        if (a == null) a = "";
-        if (b == null) b = "";
+        if (a == null)
+            a = "";
+        if (b == null)
+            b = "";
         a = a.toLowerCase();
         b = b.toLowerCase();
 
@@ -106,10 +110,12 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     }
 
     private boolean esSimilar(String a, String b) {
-        if (a == null || b == null) return false;
+        if (a == null || b == null)
+            return false;
         int distancia = calcularDistanciaLevenshtein(a, b);
         int longitud = Math.max(a.length(), b.length());
-        if (longitud == 0) return true;
+        if (longitud == 0)
+            return true;
         double similarity = 1.0 - ((double) distancia / longitud);
         // Umbral configurable: 0.70 => 70% de similaridad o más
         return similarity >= 0.70;
@@ -124,17 +130,19 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
         List<CapacitacionEntity> existentes = capacitacionRepository.findAll();
 
         try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = new XSSFWorkbook(inputStream)) {
+                Workbook workbook = new XSSFWorkbook(inputStream)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Saltar encabezado
+                if (row.getRowNum() == 0)
+                    continue; // Saltar encabezado
 
                 String nombre = getCellValue(row.getCell(0));
                 String descripcion = getCellValue(row.getCell(1));
 
                 // Ignorar filas sin nombre
-                if (nombre == null || nombre.isBlank()) continue;
+                if (nombre == null || nombre.isBlank())
+                    continue;
 
                 boolean nombreExacto = existentes.stream()
                         .anyMatch(c -> c.getNombre() != null && c.getNombre().equalsIgnoreCase(nombre));
@@ -153,7 +161,8 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
                 if (nombreExacto) {
                     dto.setObservacion("ERROR: nombre repetido");
                     resultado.add(dto);
-                    // Si es error por nombre exacto, no necesitamos añadir más observaciones para esta fila
+                    // Si es error por nombre exacto, no necesitamos añadir más observaciones para
+                    // esta fila
                     continue;
                 }
 
@@ -201,8 +210,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
             // Lanzar excepción con la lista de duplicadas
             throw new ValidacionCapacitacionException(
                     "Se detectaron capacitaciones repetidas por nombre: " + nombres,
-                    errores
-            );
+                    errores);
         }
 
         UploadResultDTO result = new UploadResultDTO();
@@ -213,11 +221,12 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
         List<CapacitacionEntity> paraGuardar = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = new XSSFWorkbook(inputStream)) {
+                Workbook workbook = new XSSFWorkbook(inputStream)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
-            if (rows.hasNext()) rows.next(); // saltar encabezado
+            if (rows.hasNext())
+                rows.next(); // saltar encabezado
 
             while (rows.hasNext()) {
                 Row row = rows.next();
@@ -245,8 +254,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
                     listaErr.add(err);
                     throw new ValidacionCapacitacionException(
                             "Nombre repetido detectado durante la carga: [" + nombre + "]",
-                            listaErr
-                    );
+                            listaErr);
                 }
 
                 CapacitacionEntity c = new CapacitacionEntity();
@@ -336,7 +344,8 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
                 } catch (Exception ex) {
                     try {
                         double dv = cell.getNumericCellValue();
-                        if (dv == Math.floor(dv)) return String.valueOf((long) dv);
+                        if (dv == Math.floor(dv))
+                            return String.valueOf((long) dv);
                         return String.valueOf(dv);
                     } catch (Exception e) {
                         return null;
@@ -364,31 +373,30 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     }
 
     @Override
-public String subirImagen(MultipartFile file, Long capacitacionId) throws Exception {
+    public String subirImagen(MultipartFile file, Long capacitacionId) throws Exception {
 
-    CapacitacionEntity cap = capacitacionRepository.findById(capacitacionId)
-            .orElseThrow(() -> new RuntimeException("Capacitación no encontrada"));
+        CapacitacionEntity cap = capacitacionRepository.findById(capacitacionId)
+                .orElseThrow(() -> new RuntimeException("Capacitación no encontrada"));
 
-    if (file == null || file.isEmpty()) {
-        throw new RuntimeException("Archivo no enviado");
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Archivo no enviado");
+        }
+
+        if (!file.getContentType().startsWith("image/")) {
+            throw new RuntimeException("Archivo no es una imagen válida");
+        }
+
+        String folder = "capacitaciones/" + capacitacionId;
+
+        String publicId = "imagen_principal";
+
+        String url = cloudinaryService.upload(file, folder, publicId);
+
+        cap.setImagen(url);
+        capacitacionRepository.save(cap);
+
+        return url;
     }
-
-    if (!file.getContentType().startsWith("image/")) {
-        throw new RuntimeException("Archivo no es una imagen válida");
-    }
-
-    String folder = "capacitaciones/" + capacitacionId;
-
-    
-    String publicId = "imagen_principal";
-
-    String url = cloudinaryService.upload(file, folder, publicId);
-
-    cap.setImagen(url);
-    capacitacionRepository.save(cap);
-
-    return url;
-}
 
     @Override
     public CapacitacionDTO actualizarCapacitacion(Long id, CapacitacionDTO dto) {
@@ -437,26 +445,26 @@ public String subirImagen(MultipartFile file, Long capacitacionId) throws Except
         }).collect(Collectors.toList());
     }
 
-@Override
-public List<CapacitacionDTO> obtenerCapacitacionesUsuario(Long usuarioId) {
+    @Override
+    public List<CapacitacionDTO> obtenerCapacitacionesUsuario(Long usuarioId) {
 
-    return inscripcionRepository
-            .findByUsuario_IdUsuario(usuarioId)
-            .stream()
-            .map(ins -> ins.getCurso())
-            .filter(curso -> curso != null) // 👈 evita null
-            .map(curso -> {
-                CapacitacionDTO dto = new CapacitacionDTO();
-                dto.setId(curso.getId());
-                dto.setNombre(curso.getNombre());
-                dto.setDescripcion(curso.getDescripcion());
-                dto.setNumeroDeClases(curso.getNumeroDeClases());
-                dto.setDuracion(curso.getDuracion());
-                dto.setImagen(curso.getImagen());
-                return dto;
-            })
-            .collect(Collectors.toList());
-}
+        return inscripcionRepository
+                .findByUsuario_IdUsuario(usuarioId)
+                .stream()
+                .map(ins -> ins.getCurso())
+                .filter(curso -> curso != null) // 👈 evita null
+                .map(curso -> {
+                    CapacitacionDTO dto = new CapacitacionDTO();
+                    dto.setId(curso.getId());
+                    dto.setNombre(curso.getNombre());
+                    dto.setDescripcion(curso.getDescripcion());
+                    dto.setNumeroDeClases(curso.getNumeroDeClases());
+                    dto.setDuracion(curso.getDuracion());
+                    dto.setImagen(curso.getImagen());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
 
     // ============================
     // Módulos (sin cambios funcionales)
@@ -475,8 +483,6 @@ public List<CapacitacionDTO> obtenerCapacitacionesUsuario(Long usuarioId) {
         dto.setId(saved.getId());
         return dto;
     }
-
-    
 
     @Override
     public ModuloDTO actualizarModulo(Long id, ModuloDTO dto) {
@@ -576,6 +582,14 @@ public List<CapacitacionDTO> obtenerCapacitacionesUsuario(Long usuarioId) {
 
         CapacitacionEntity curso = capacitacionRepository.findById(cursoId)
                 .orElseThrow(() -> new RuntimeException("Capacitación no encontrada"));
+
+        // 🔥 VALIDAR SI YA EXISTE
+        boolean yaInscrito = inscripcionRepository
+                .existsByUsuario_IdUsuarioAndCurso_Id(usuarioId, cursoId);
+
+        if (yaInscrito) {
+            throw new RuntimeException("YA_INSCRITO");
+        }
 
         InscripcionEntity entidad = new InscripcionEntity();
         entidad.setUsuario(usuario);
@@ -724,6 +738,6 @@ public List<CapacitacionDTO> obtenerCapacitacionesUsuario(Long usuarioId) {
             dto.setModulosCompletados(entidad.getModulosCompletados());
             dto.setTiempoInvertido(entidad.getTiempoInvertido());
             return dto;
-        }).collect(Collectors.toList ());
+        }).collect(Collectors.toList());
     }
 }

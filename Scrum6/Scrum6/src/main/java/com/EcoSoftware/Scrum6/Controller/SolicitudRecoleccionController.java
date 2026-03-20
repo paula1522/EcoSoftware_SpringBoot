@@ -134,6 +134,12 @@ public class SolicitudRecoleccionController {
         return ResponseEntity.ok(solicitudService.rechazarSolicitud(id, motivo));
     }
 
+    @PostMapping("/{id}/cancelar")
+public ResponseEntity<SolicitudRecoleccionDTO> cancelarSolicitud(@PathVariable Long id) {
+    return ResponseEntity.ok(solicitudService.cancelarSolicitud(id));
+}
+    
+
     // ========================================================
     // ACTUALIZAR SOLICITUD
     // ========================================================

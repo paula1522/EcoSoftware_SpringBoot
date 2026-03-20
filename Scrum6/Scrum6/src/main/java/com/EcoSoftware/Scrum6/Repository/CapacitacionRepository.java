@@ -20,6 +20,7 @@ public interface CapacitacionRepository extends JpaRepository<CapacitacionEntity
     boolean existsByDescripcionIgnoreCase(String descripcion);
 
     Optional<CapacitacionesDTO> findByNombre(String nombre);
+    
 
 
 }

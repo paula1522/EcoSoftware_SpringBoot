@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // Configurar autorizaciones
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         // ENDPOINTS PÚBLICOS - AUTENTICACIÓN
         .requestMatchers(
                 "/api/auth/**",

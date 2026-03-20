@@ -1,8 +1,10 @@
 package com.EcoSoftware.Scrum6.Config;
 
 import java.util.List;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +24,9 @@ import com.EcoSoftware.Scrum6.Security.JwtAuthFilter;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+        @Value("${app.cors.allowed-origins:http://localhost:4200,https://ecosoftware.azurewebsites.net}")
+        private String allowedOrigins;
 
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
@@ -74,11 +79,15 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Origen específico (no wildcard) porque usamos credenciales
-       configuration.setAllowedOrigins(List.of(
-    "http://localhost:4200",
-    "https://ecosoftware.azurewebsites.net"
-));
+                // Configuracion anterior fija:
+                // configuration.setAllowedOrigins(List.of(
+                //         "http://localhost:4200",
+                //         "https://ecosoftware.azurewebsites.net"
+                // ));
+        configuration.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList());
 
         // Métodos permitidos
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));

@@ -29,14 +29,13 @@ public class RecoleccionServiceImpl implements RecoleccionService {
 
     }
 
-   @Override
-public List<RecoleccionDTO> listarTodasRecolector(Long recolectorId) {
-    return recoleccionRepository.findByRecolector_IdUsuario(recolectorId)
-            .stream()
-            .map(this::convertirADTO)
-            .toList();
-}
-
+    @Override
+    public List<RecoleccionDTO> listarTodasRecolector(Long recolectorId) {
+        return recoleccionRepository.findByRecolector_IdUsuario(recolectorId)
+                .stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
 
     // ========================================================
     // OBTENER RECOLECCIÓN POR ID
@@ -65,24 +64,22 @@ public List<RecoleccionDTO> listarTodasRecolector(Long recolectorId) {
     }
 
     @Override
-public List<RecoleccionDTO> listarPorRecolector(Long recolectorId) {
-    return recoleccionRepository
-            .findByRecolector_IdUsuarioAndEstadoNot(recolectorId, EstadoRecoleccion.Cancelada)
-            .stream()
-            .map(this::convertirADTO)
-            .toList();
-}
-
+    public List<RecoleccionDTO> listarPorRecolector(Long recolectorId) {
+        return recoleccionRepository
+                .findByRecolector_IdUsuarioAndEstadoNot(recolectorId, EstadoRecoleccion.Cancelada)
+                .stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
 
     @Override
-public List<RecoleccionDTO> listarPorRuta(Long rutaId) {
-    return recoleccionRepository
-            .findByRuta_IdRutaAndEstadoNot(rutaId, EstadoRecoleccion.Cancelada)
-            .stream()
-            .map(this::convertirADTO)
-            .toList();
-}
-
+    public List<RecoleccionDTO> listarPorRuta(Long rutaId) {
+        return recoleccionRepository
+                .findByRuta_IdRutaAndEstadoNot(rutaId, EstadoRecoleccion.Cancelada)
+                .stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
 
     @Override
     public List<RecoleccionDTO> listarSinRutaPorRecolector(Long recolectorId) {
@@ -145,33 +142,40 @@ public List<RecoleccionDTO> listarPorRuta(Long rutaId) {
     // ========================================================
     // ACTUALIZAR DATOS (NO PERMITE CAMBIAR ESTADO)
     // ========================================================
+    
     @Override
-    @Transactional
-    public RecoleccionDTO actualizarRecoleccion(Long id, RecoleccionDTO dto) {
-        RecoleccionEntity r = recoleccionRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Recolección no encontrada"));
+@Transactional
+public RecoleccionDTO actualizarRecoleccion(Long id, RecoleccionDTO dto) {
+    RecoleccionEntity r = recoleccionRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Recolección no encontrada"));
 
-        // No permitir cambios si está finalizada
-        if (r.getEstado() == EstadoRecoleccion.Cancelada ||
-                r.getEstado() == EstadoRecoleccion.Fallida ||
-                r.getEstado() == EstadoRecoleccion.Completada) {
-            throw new IllegalStateException("No se pueden modificar datos de una recolección cerrada");
-        }
-
-        if (dto.getObservaciones() != null)
-            r.setObservaciones(dto.getObservaciones());
-        if (dto.getEvidencia() != null)
-            r.setEvidencia(dto.getEvidencia());
-        if (dto.getFechaRecoleccion() != null)
-            r.setFechaRecoleccion(dto.getFechaRecoleccion());
-
-        // Estado solo puede cambiarse por actualizarEstado()
-        if (dto.getEstado() != null) {
-            throw new IllegalStateException("El estado solo puede cambiarse mediante actualizarEstado()");
-        }
-
-        return convertirADTO(r);
+    // No permitir cambios si está finalizada
+    if (r.getEstado() == EstadoRecoleccion.Cancelada ||
+        r.getEstado() == EstadoRecoleccion.Fallida ||
+        r.getEstado() == EstadoRecoleccion.Completada) {
+        throw new IllegalStateException("No se pueden modificar datos de una recolección cerrada");
     }
+
+    // Actualizar solo campos permitidos
+    if (dto.getObservaciones() != null)
+        r.setObservaciones(dto.getObservaciones());
+
+    if (dto.getEvidencia() != null)
+        r.setEvidencia(dto.getEvidencia());
+
+    if (dto.getFechaRecoleccion() != null)
+        r.setFechaRecoleccion(dto.getFechaRecoleccion());
+
+    // ⚠️ El estado solo puede cambiarse mediante actualizarEstado()
+    if (dto.getEstado() != null) {
+        throw new IllegalStateException("El estado solo puede cambiarse mediante actualizarEstado()");
+    }
+
+    // 🔹 Guardar la entidad para que los cambios persistan
+    RecoleccionEntity actualizado = recoleccionRepository.save(r);
+
+    return convertirADTO(actualizado);
+}
 
     // ========================================================
     // ELIMINAR LÓGICAMENTE = CANCELAR
@@ -192,11 +196,35 @@ public List<RecoleccionDTO> listarPorRuta(Long rutaId) {
 
     private RecoleccionDTO convertirADTO(RecoleccionEntity entity) {
         RecoleccionDTO dto = new RecoleccionDTO();
+
         dto.setIdRecoleccion(entity.getIdRecoleccion());
+
+        // 🔥 RELACIONES
+        dto.setSolicitudId(
+                entity.getSolicitud() != null
+                        ? entity.getSolicitud().getIdSolicitud()
+                        : null);
+
+        dto.setRecolectorId(
+                entity.getRecolector() != null
+                        ? entity.getRecolector().getIdUsuario()
+                        : null);
+
+        dto.setRutaId(
+                entity.getRuta() != null
+                        ? entity.getRuta().getIdRuta()
+                        : null);
+
+        // 🔥 CAMPOS PRINCIPALES
         dto.setEstado(entity.getEstado());
+        dto.setFechaRecoleccion(entity.getFechaRecoleccion());
+        dto.setOrdenParada(entity.getOrdenParada());
+
+        // 🔥 INFO EXTRA
         dto.setObservaciones(entity.getObservaciones());
         dto.setEvidencia(entity.getEvidencia());
-        dto.setFechaRecoleccion(entity.getFechaRecoleccion());
+        dto.setFechaCreacionRecoleccion(entity.getFechaCreacionRecoleccion());
+
         return dto;
     }
 

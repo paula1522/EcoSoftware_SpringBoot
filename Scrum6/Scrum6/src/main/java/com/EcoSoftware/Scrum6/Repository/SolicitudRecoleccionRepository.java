@@ -48,6 +48,37 @@ public interface SolicitudRecoleccionRepository extends JpaRepository<SolicitudR
        "GROUP BY s.motivoRechazo")
 List<Object[]> obtenerRechazadasAgrupadasPorMotivo();
 
+    // === DASHBOARDS OPTIMIZADOS ===
+
+    // Ciudadano Dashboard - Solicitudes por estado (agrupa en BD por enum)
+    @Query("SELECT s.estadoPeticion as estado, COUNT(s) as cantidad " +
+           "FROM SolicitudRecoleccionEntity s " +
+           "WHERE s.usuario.idUsuario = :usuarioId " +
+           "GROUP BY s.estadoPeticion " +
+           "ORDER BY s.estadoPeticion")
+    List<Object[]> obtenerEstadosCiudadano(@Param("usuarioId") Long usuarioId);
+
+    // Ciudadano Dashboard - Solicitudes por mes
+    @Query("SELECT YEAR(s.fechaCreacionSolicitud) as anio, " +
+           "MONTH(s.fechaCreacionSolicitud) as mes, " +
+           "COUNT(s) as cantidad " +
+           "FROM SolicitudRecoleccionEntity s " +
+           "WHERE s.usuario.idUsuario = :usuarioId AND s.fechaCreacionSolicitud IS NOT NULL " +
+           "GROUP BY YEAR(s.fechaCreacionSolicitud), MONTH(s.fechaCreacionSolicitud) " +
+           "ORDER BY YEAR(s.fechaCreacionSolicitud), MONTH(s.fechaCreacionSolicitud)")
+    List<Object[]> obtenerMesesCiudadano(@Param("usuarioId") Long usuarioId);
+
+    // Ciudadano Dashboard - Residuos por tipo
+    @Query("SELECT s.tipoResiduo, s.cantidad " +
+           "FROM SolicitudRecoleccionEntity s " +
+           "WHERE s.usuario.idUsuario = :usuarioId")
+    List<Object[]> obtenerResiduosPorTipoCiudadano(@Param("usuarioId") Long usuarioId);
+
+    // Ciudadano Dashboard - Solo solicitudes (con proyección minimal)
+    @Query("SELECT s.tipoResiduo, s.cantidad FROM SolicitudRecoleccionEntity s " +
+           "WHERE s.usuario.idUsuario = :usuarioId")
+    List<Object[]> obtenerDatosImpactoCiudadano(@Param("usuarioId") Long usuarioId);
+
 // Contar solicitudes aceptadas
 @Query("SELECT COUNT(s) FROM SolicitudRecoleccionEntity s WHERE s.estadoPeticion = com.EcoSoftware.Scrum6.Enums.EstadoPeticion.Aceptada")
 Long countAceptadas();

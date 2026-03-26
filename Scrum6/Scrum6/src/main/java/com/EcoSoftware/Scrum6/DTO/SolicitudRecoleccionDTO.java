@@ -1,9 +1,7 @@
 package com.EcoSoftware.Scrum6.DTO;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 
 import com.EcoSoftware.Scrum6.Enums.EstadoPeticion;
@@ -28,8 +26,7 @@ public class SolicitudRecoleccionDTO {
     private BigDecimal longitude;
     private String evidencia;
     private OffsetDateTime fechaCreacionSolicitud;
-    private LocalDate fechaProgramada;
-    private LocalTime horaProgramada;
+    private LocalDateTime fechaProgramada;
 
     private Long recoleccionId;      // Relación con la recolección generada
     private String motivoRechazo;// Motivo de rechazo si la solicitud es rechazada

@@ -1,6 +1,5 @@
 package com.EcoSoftware.Scrum6.Entity;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import org.hibernate.annotations.CreationTimestamp;
@@ -41,7 +40,7 @@ private UsuarioEntity recolector;
 private EstadoRecoleccion estado = EstadoRecoleccion.Pendiente;
 
     @Column(name = "fecha_recoleccion")
-    private LocalDate fechaRecoleccion;
+    private LocalDateTime fechaRecoleccion;
 
     private Integer ordenParada;
 

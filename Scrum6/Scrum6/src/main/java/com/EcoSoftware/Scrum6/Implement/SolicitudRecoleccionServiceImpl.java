@@ -2,7 +2,6 @@ package com.EcoSoftware.Scrum6.Implement;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -140,7 +139,7 @@ public SolicitudRecoleccionDTO crearSolicitud(SolicitudRecoleccionDTO dto, Strin
         throw new RuntimeException("La fecha programada es obligatoria");
     }
 
-    if (dto.getFechaProgramada().isBefore(LocalDate.now())) {
+    if (dto.getFechaProgramada().isBefore(LocalDateTime.now())) {
         throw new RuntimeException("La fecha no puede ser anterior a hoy");
     }
 
@@ -167,7 +166,6 @@ public SolicitudRecoleccionDTO crearSolicitud(SolicitudRecoleccionDTO dto, Strin
 
     entity.setEvidencia(dto.getEvidencia());
     entity.setFechaProgramada(dto.getFechaProgramada());
-    entity.setHoraProgramada(dto.getHoraProgramada());
 
     entity.setEstadoPeticion(EstadoPeticion.Pendiente);
     entity.setFechaCreacionSolicitud(OffsetDateTime.now());
@@ -186,8 +184,7 @@ public SolicitudRecoleccionDTO crearSolicitud(SolicitudRecoleccionDTO dto, Strin
     context.setVariable("ubicacion", entity.getUbicacion());
     context.setVariable("fechaProgramada",
         entity.getFechaProgramada() != null ? entity.getFechaProgramada().toString() : "N/A");
-    context.setVariable("horaProgramada",
-        entity.getHoraProgramada() != null ? entity.getHoraProgramada().toString() : "N/A");
+    
 
     String html = templateEngine.process("email-registroSolicitud", context);
 
@@ -364,7 +361,7 @@ public SolicitudRecoleccionDTO actualizarSolicitud(Long id, SolicitudRecoleccion
 
     // VALIDACIÓN DE FECHA
     if (dto.getFechaProgramada() != null &&
-        dto.getFechaProgramada().isBefore(LocalDate.now())) {
+        dto.getFechaProgramada().isBefore(LocalDateTime.now())) {
         throw new RuntimeException("La fecha no puede ser anterior a hoy");
     }
 
@@ -397,8 +394,7 @@ public SolicitudRecoleccionDTO actualizarSolicitud(Long id, SolicitudRecoleccion
     if (dto.getFechaProgramada() != null)
         solicitud.setFechaProgramada(dto.getFechaProgramada());
 
-    if (dto.getHoraProgramada() != null)
-        solicitud.setHoraProgramada(dto.getHoraProgramada());
+   
 
     return entityToDTO(solicitudRepository.save(solicitud));
 }
@@ -453,7 +449,7 @@ public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
        
 
         return dtos.stream().filter(dto -> {
-            LocalDate fecha = dto.getFechaProgramada();
+            LocalDateTime fecha = dto.getFechaProgramada();
             if (fecha == null)
                 return false;
         
@@ -531,7 +527,7 @@ public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
             row.createCell(10).setCellValue(
                     Optional.ofNullable(s.getFechaCreacionSolicitud()).map(OffsetDateTime::toString).orElse(""));
             row.createCell(11)
-                    .setCellValue(Optional.ofNullable(s.getFechaProgramada()).map(LocalDate::toString).orElse(""));
+                    .setCellValue(Optional.ofNullable(s.getFechaProgramada()).map(LocalDateTime::toString).orElse(""));
             row.createCell(12).setCellValue(Optional.ofNullable(s.getRecoleccionId()).orElse(0L).doubleValue());
         }
 
@@ -593,7 +589,7 @@ public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
             table.addCell(Optional.ofNullable(s.getLocalidad()).map(Enum::name).orElse(""));
             table.addCell(Optional.ofNullable(s.getUbicacion()).orElse(""));
             table.addCell(Optional.ofNullable(s.getFechaCreacionSolicitud()).map(OffsetDateTime::toString).orElse(""));
-            table.addCell(Optional.ofNullable(s.getFechaProgramada()).map(LocalDate::toString).orElse(""));
+            table.addCell(Optional.ofNullable(s.getFechaProgramada()).map(LocalDateTime::toString).orElse(""));
             table.addCell(Optional.ofNullable(s.getRecoleccionId()).map(Object::toString).orElse(""));
         }
 

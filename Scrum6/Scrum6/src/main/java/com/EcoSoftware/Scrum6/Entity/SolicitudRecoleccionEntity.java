@@ -1,7 +1,6 @@
 package com.EcoSoftware.Scrum6.Entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -95,12 +94,9 @@ private BigDecimal longitude;
     @Column(name = "fecha_programada", nullable = false)
     @NotNull(message = "La fecha programada es obligatoria")
     @FutureOrPresent(message = "La fecha debe ser hoy o futura")
-    private LocalDate fechaProgramada;
+    private LocalDateTime fechaProgramada;
 
-     @Column(name = "hora_programada", nullable = false)
-    @NotNull(message = "La hora programada es obligatoria")
-    private LocalTime horaProgramada;
-
+   
     // Relación con la recolección generada (si llega a aceptarse)
     @OneToOne(mappedBy = "solicitud", cascade = CascadeType.ALL, orphanRemoval = true)
     private RecoleccionEntity recoleccion;

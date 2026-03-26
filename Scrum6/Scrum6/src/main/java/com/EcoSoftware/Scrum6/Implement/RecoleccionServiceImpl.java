@@ -133,7 +133,7 @@ public class RecoleccionServiceImpl implements RecoleccionService {
         r.setEstado(nuevoEstado);
 
         if (nuevoEstado == EstadoRecoleccion.Completada && r.getFechaRecoleccion() == null) {
-            r.setFechaRecoleccion(java.time.LocalDate.now());
+            r.setFechaRecoleccion(java.time.LocalDateTime.now());
         }
 
         return convertirADTO(r);
@@ -199,7 +199,7 @@ public RecoleccionDTO actualizarRecoleccion(Long id, RecoleccionDTO dto) {
 
         dto.setIdRecoleccion(entity.getIdRecoleccion());
 
-        // 🔥 RELACIONES
+        //  RELACIONES
         dto.setSolicitudId(
                 entity.getSolicitud() != null
                         ? entity.getSolicitud().getIdSolicitud()
@@ -215,12 +215,12 @@ public RecoleccionDTO actualizarRecoleccion(Long id, RecoleccionDTO dto) {
                         ? entity.getRuta().getIdRuta()
                         : null);
 
-        // 🔥 CAMPOS PRINCIPALES
+        // CAMPOS PRINCIPALES
         dto.setEstado(entity.getEstado());
         dto.setFechaRecoleccion(entity.getFechaRecoleccion());
         dto.setOrdenParada(entity.getOrdenParada());
 
-        // 🔥 INFO EXTRA
+        // INFO EXTRA
         dto.setObservaciones(entity.getObservaciones());
         dto.setEvidencia(entity.getEvidencia());
         dto.setFechaCreacionRecoleccion(entity.getFechaCreacionRecoleccion());

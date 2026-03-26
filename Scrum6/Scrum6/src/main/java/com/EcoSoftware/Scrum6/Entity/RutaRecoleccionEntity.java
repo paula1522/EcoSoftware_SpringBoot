@@ -1,55 +1,47 @@
 package com.EcoSoftware.Scrum6.Entity;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-
-import org.hibernate.annotations.CreationTimestamp;
-
 import com.EcoSoftware.Scrum6.Enums.EstadoRuta;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "ruta_recoleccion")
-@Setter
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@Setter
 public class RutaRecoleccionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idRuta;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "recolector_id", nullable = false)
-private UsuarioEntity recolector;
-
+    @Column(nullable = false)
+    private String nombre;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private EstadoRuta estado = EstadoRuta.PLANIFICADA;
+    private EstadoRuta estado;
 
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private OffsetDateTime fechaCreacion;
+    private Double distanciaTotal;
+    private Double tiempoEstimado;
 
-    @OneToMany(mappedBy = "ruta", fetch = FetchType.LAZY)
-private List<RecoleccionEntity> recolecciones;
+    @Column(length = 2000)
+    private String geometriaRuta; // polyline u otro formato
 
+    private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    // =====================================
+    // RELACIÓN CON RECOLECTOR
+    // =====================================
+    @ManyToOne
+    @JoinColumn(name = "recolector_id", nullable = false)
+    private UsuarioEntity recolector;
+
+    // =====================================
+    // RELACIÓN CON RECOLECCIONES
+    // =====================================
+    @OneToMany(mappedBy = "ruta", cascade = CascadeType.ALL)
+    private List<RecoleccionEntity> recolecciones;
 }

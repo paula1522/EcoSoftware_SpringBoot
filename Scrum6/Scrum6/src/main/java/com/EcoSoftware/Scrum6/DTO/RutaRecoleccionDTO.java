@@ -1,6 +1,5 @@
 package com.EcoSoftware.Scrum6.DTO;
 
-
 import com.EcoSoftware.Scrum6.Enums.EstadoRuta;
 import lombok.Data;
 
@@ -11,11 +10,14 @@ import java.util.List;
 public class RutaRecoleccionDTO {
 
     private Long idRuta;
-    private Long recolectorId;
-
+    private String nombre;
     private EstadoRuta estado;
+
+    private List<Long> recoleccionIds;
+    private Long recolectorId;
+    private Double distanciaTotal;
+    private Double tiempoEstimado;
+    private String geometriaRuta;
+
     private OffsetDateTime fechaCreacion;
-
-    private List<Long> recoleccionesIds; // solo IDs, no objetos completos
 }
-

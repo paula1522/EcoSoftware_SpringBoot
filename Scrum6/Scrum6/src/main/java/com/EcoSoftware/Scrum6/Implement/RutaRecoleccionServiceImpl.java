@@ -1,168 +1,157 @@
 package com.EcoSoftware.Scrum6.Implement;
 
-import com.EcoSoftware.Scrum6.DTO.CrearRutaRequestDTO;
 import com.EcoSoftware.Scrum6.DTO.RutaRecoleccionDTO;
 import com.EcoSoftware.Scrum6.Entity.RecoleccionEntity;
 import com.EcoSoftware.Scrum6.Entity.RutaRecoleccionEntity;
 import com.EcoSoftware.Scrum6.Entity.UsuarioEntity;
+import com.EcoSoftware.Scrum6.Enums.EstadoRecoleccion;
 import com.EcoSoftware.Scrum6.Enums.EstadoRuta;
 import com.EcoSoftware.Scrum6.Repository.RecoleccionRepository;
 import com.EcoSoftware.Scrum6.Repository.RutaRecoleccionRepository;
 import com.EcoSoftware.Scrum6.Repository.UsuarioRepository;
+import com.EcoSoftware.Scrum6.Service.OSRMService;
 import com.EcoSoftware.Scrum6.Service.RutaRecoleccionService;
-
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class RutaRecoleccionServiceImpl implements RutaRecoleccionService {
 
-    private final RutaRecoleccionRepository rutaRecoleccionRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final RutaRecoleccionRepository rutaRepository;
     private final RecoleccionRepository recoleccionRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final OSRMService osrmService;
 
-    // ========================================================
-    // CREAR RUTA
-    // ========================================================
     @Override
     @Transactional
-    public RutaRecoleccionDTO crearRuta(CrearRutaRequestDTO dto) {
-        UsuarioEntity recolector = usuarioRepository.findById(dto.getRecolectorId())
+    public RutaRecoleccionDTO crearRuta(RutaRecoleccionDTO dto, Long recolectorId) {
+
+        UsuarioEntity recolector = usuarioRepository.findById(recolectorId)
                 .orElseThrow(() -> new EntityNotFoundException("Recolector no encontrado"));
 
         RutaRecoleccionEntity ruta = new RutaRecoleccionEntity();
-        ruta.setRecolector(recolector);
+        ruta.setNombre(dto.getNombre());
         ruta.setEstado(EstadoRuta.PLANIFICADA);
+        ruta.setRecolector(recolector);
 
-        if (dto.getRecoleccionesIds() != null && !dto.getRecoleccionesIds().isEmpty()) {
-            List<RecoleccionEntity> recolecciones = recoleccionRepository.findAllById(dto.getRecoleccionesIds());
+        if (dto.getRecoleccionIds() != null) {
+
+            List<RecoleccionEntity> recolecciones =
+                    recoleccionRepository.findAllById(dto.getRecoleccionIds());
+
+            if (recolecciones.size() < 2) {
+                throw new IllegalStateException("Se necesitan al menos 2 puntos");
+            }
+
+            for (RecoleccionEntity r : recolecciones) {
+
+                if (r.getEstado() != EstadoRecoleccion.Pendiente) {
+                    throw new IllegalStateException("Solo pendientes");
+                }
+
+                if (r.getRuta() != null) {
+                    throw new IllegalStateException("Ya pertenece a ruta");
+                }
+
+                r.setRuta(ruta);
+            }
+
+            List<double[]> coords = recolecciones.stream()
+                    .map(r -> new double[]{
+                            r.getSolicitud().getLongitude().doubleValue(),
+                            r.getSolicitud().getLatitude().doubleValue()
+                    })
+                    .toList();
+
+            var resultado = osrmService.calcularRuta(coords);
+
+            ruta.setDistanciaTotal(resultado.getDistancia());
+            ruta.setTiempoEstimado(resultado.getDuracion());
+            ruta.setGeometriaRuta(resultado.getGeometria());
+
             ruta.setRecolecciones(recolecciones);
+            recoleccionRepository.saveAll(recolecciones);
         }
 
-        rutaRecoleccionRepository.save(ruta);
-        return convertirADTO(ruta);
+        return convertirDTO(rutaRepository.save(ruta));
     }
 
-    // ========================================================
-    // OBTENER RUTA POR ID
-    // ========================================================
     @Override
-    public RutaRecoleccionDTO obtenerPorId(Long rutaId) {
-        RutaRecoleccionEntity ruta = rutaRecoleccionRepository.findById(rutaId)
+    public RutaRecoleccionDTO obtenerPorId(Long id) {
+        return rutaRepository.findById(id)
+                .map(this::convertirDTO)
                 .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
-        return convertirADTO(ruta);
     }
 
-    // ========================================================
-    // LISTAR TODAS LAS RUTAS
-    // ========================================================
     @Override
     public List<RutaRecoleccionDTO> listarTodas() {
-        return rutaRecoleccionRepository.findAll()
-                .stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
+        return rutaRepository.findAll().stream().map(this::convertirDTO).toList();
     }
 
-    // ========================================================
-    // LISTAR RUTAS POR RECOLECTOR
-    // ========================================================
-    @Override
-    public List<RutaRecoleccionDTO> listarPorRecolector(Long recolectorId) {
-        return rutaRecoleccionRepository.findByRecolector_IdUsuario(recolectorId)
-                .stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
-    }
-
-    // ========================================================
-    // LISTAR RUTAS POR ESTADO
-    // ========================================================
     @Override
     public List<RutaRecoleccionDTO> listarPorEstado(EstadoRuta estado) {
-        return rutaRecoleccionRepository.findByEstado(estado)
-                .stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
+        return rutaRepository.findByEstado(estado).stream().map(this::convertirDTO).toList();
     }
 
-    // ========================================================
-    // ACTUALIZAR ESTADO DE LA RUTA
-    // ========================================================
     @Override
-    @Transactional
-    public RutaRecoleccionDTO actualizarEstado(Long rutaId, EstadoRuta nuevoEstado) {
-        RutaRecoleccionEntity ruta = rutaRecoleccionRepository.findById(rutaId)
-                .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
-
-        // Evitar cambios si la ruta ya está COMPLETADA o CANCELADA
-        if (ruta.getEstado() == EstadoRuta.FINALIZADA || ruta.getEstado() == EstadoRuta.CANCELADA) {
-            throw new IllegalStateException("No se puede cambiar el estado de una ruta finalizada o cancelada");
-        }
-
-        ruta.setEstado(nuevoEstado);
-        rutaRecoleccionRepository.save(ruta);
-        return convertirADTO(ruta);
+    public List<RutaRecoleccionDTO> listarPorRecolector(Long recolectorId) {
+        return rutaRepository.findByRecolector_IdUsuario(recolectorId).stream().map(this::convertirDTO).toList();
     }
 
-    // ========================================================
-    // ASIGNAR RECOLECCIONES A LA RUTA
-    // ========================================================
     @Override
     @Transactional
-    public RutaRecoleccionDTO asignarRecolecciones(Long rutaId, List<Long> recoleccionesIds) {
-        RutaRecoleccionEntity ruta = rutaRecoleccionRepository.findById(rutaId)
-                .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
-
-        List<RecoleccionEntity> recolecciones = recoleccionRepository.findAllById(recoleccionesIds);
-        ruta.setRecolecciones(recolecciones);
-
-        rutaRecoleccionRepository.save(ruta);
-        return convertirADTO(ruta);
-    }
-
-    // ========================================================
-    // ELIMINAR RUTA
-    // ========================================================
-    @Override
-    @Transactional
-    public void eliminarRuta(Long rutaId) {
-        RutaRecoleccionEntity ruta = rutaRecoleccionRepository.findById(rutaId)
+    public RutaRecoleccionDTO iniciarRuta(Long id) {
+        RutaRecoleccionEntity ruta = rutaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
 
         if (ruta.getEstado() != EstadoRuta.PLANIFICADA) {
-            throw new IllegalStateException("Solo se pueden eliminar rutas PLANIFICADAS");
+            throw new IllegalStateException("Solo rutas planificadas pueden iniciar");
         }
 
-        rutaRecoleccionRepository.delete(ruta);
+        ruta.setEstado(EstadoRuta.EN_PROGRESO);
+        ruta.getRecolecciones().forEach(r -> r.setEstado(EstadoRecoleccion.En_Progreso));
+
+        return convertirDTO(rutaRepository.save(ruta));
     }
 
-    // ========================================================
-    // CONVERTIR ENTITY A DTO
-    // ========================================================
-    private RutaRecoleccionDTO convertirADTO(RutaRecoleccionEntity ruta) {
+    @Override
+    @Transactional
+    public RutaRecoleccionDTO finalizarRuta(Long id) {
+        RutaRecoleccionEntity ruta = rutaRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
+
+        if (ruta.getEstado() != EstadoRuta.EN_PROGRESO) {
+            throw new IllegalStateException("Ruta no está en progreso");
+        }
+
+        ruta.setEstado(EstadoRuta.FINALIZADA);
+        ruta.getRecolecciones().forEach(r -> r.setEstado(EstadoRecoleccion.Completada));
+
+        return convertirDTO(rutaRepository.save(ruta));
+    }
+
+    private RutaRecoleccionDTO convertirDTO(RutaRecoleccionEntity r) {
         RutaRecoleccionDTO dto = new RutaRecoleccionDTO();
-        dto.setIdRuta(ruta.getIdRuta());
-        dto.setEstado(ruta.getEstado());
-        dto.setRecolectorId(ruta.getRecolector().getIdUsuario());
-        dto.setFechaCreacion(ruta.getFechaCreacion());
+        dto.setIdRuta(r.getIdRuta());
+        dto.setNombre(r.getNombre());
+        dto.setEstado(r.getEstado());
+        dto.setDistanciaTotal(r.getDistanciaTotal());
+        dto.setTiempoEstimado(r.getTiempoEstimado());
+        dto.setGeometriaRuta(r.getGeometriaRuta());
+dto.setFechaCreacion(r.getFechaCreacion().atOffset(ZoneOffset.systemDefault().getRules().getOffset(r.getFechaCreacion())));
+        dto.setRecolectorId(r.getRecolector() != null ? r.getRecolector().getIdUsuario() : null);
 
-        if (ruta.getRecolecciones() != null) {
-    dto.setRecoleccionesIds(
-        ruta.getRecolecciones()
-             .stream()
-             .map(RecoleccionEntity::getIdRecoleccion)
-             .map(Long::valueOf) // <--- asegura que sea Long
-             .collect(Collectors.toList())
-    );
-}
-
+        if (r.getRecolecciones() != null) {
+            dto.setRecoleccionIds(r.getRecolecciones().stream()
+                    .map(RecoleccionEntity::getIdRecoleccion)
+                    .toList());
+        }
 
         return dto;
     }

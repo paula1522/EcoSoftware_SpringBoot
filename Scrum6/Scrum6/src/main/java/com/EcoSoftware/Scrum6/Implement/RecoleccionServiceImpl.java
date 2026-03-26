@@ -133,7 +133,7 @@ public class RecoleccionServiceImpl implements RecoleccionService {
         r.setEstado(nuevoEstado);
 
         if (nuevoEstado == EstadoRecoleccion.Completada && r.getFechaRecoleccion() == null) {
-            r.setFechaRecoleccion(java.time.LocalDateTime.now());
+            r.setFechaRecoleccion(java.time.LocalDate.now());
         }
 
         return convertirADTO(r);

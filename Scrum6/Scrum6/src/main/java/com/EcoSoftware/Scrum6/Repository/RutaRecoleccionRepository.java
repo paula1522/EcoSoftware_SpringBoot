@@ -10,13 +10,10 @@ import java.util.List;
 @Repository
 public interface RutaRecoleccionRepository extends JpaRepository<RutaRecoleccionEntity, Long> {
 
-    // Rutas por estado
     List<RutaRecoleccionEntity> findByEstado(EstadoRuta estado);
 
-    // Rutas de un recolector específico
-    List<RutaRecoleccionEntity> findByRecolector_IdUsuario(Long recolectorId);
+    List<RutaRecoleccionEntity> findByRecolector_IdUsuario(Long recolector);
 
-    // Rutas activas de un recolector
     List<RutaRecoleccionEntity> findByRecolector_IdUsuarioAndEstado(
             Long recolectorId,
             EstadoRuta estado

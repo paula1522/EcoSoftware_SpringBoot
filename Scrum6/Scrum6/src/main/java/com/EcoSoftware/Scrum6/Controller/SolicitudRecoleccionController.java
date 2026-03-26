@@ -49,7 +49,7 @@ public class SolicitudRecoleccionController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String correoUsuario = auth.getName();
 
-        return ResponseEntity.ok(solicitudService.crearSolicitudConUsuario(dto, correoUsuario));
+        return ResponseEntity.ok(solicitudService.crearSolicitud(dto, correoUsuario));
     }
 
     // ========================================================
@@ -153,7 +153,7 @@ public ResponseEntity<SolicitudRecoleccionDTO> cancelarSolicitud(@PathVariable L
 
         dto.setIdSolicitud(id);
 
-        return ResponseEntity.ok(solicitudService.actualizarSolicitudConUsuario(dto, correoUsuario));
+        return ResponseEntity.ok(solicitudService.actualizarSolicitud(id,dto, correoUsuario));
     }
 
     // ========================================================

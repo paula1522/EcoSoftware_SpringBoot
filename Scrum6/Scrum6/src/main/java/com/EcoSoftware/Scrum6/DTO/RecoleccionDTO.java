@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Data
@@ -16,8 +16,8 @@ public class RecoleccionDTO {
     private Long rutaId;             // ID de la ruta (puede ser null)
 
     private EstadoRecoleccion estado;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime fechaRecoleccion;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate fechaRecoleccion;
     private Integer ordenParada;
 
     private String observaciones;

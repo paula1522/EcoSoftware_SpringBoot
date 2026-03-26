@@ -2,6 +2,7 @@ package com.EcoSoftware.Scrum6.Implement;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import com.EcoSoftware.Scrum6.DTO.SolicitudRecoleccionDTO;
+import java.math.BigDecimal;
 import com.EcoSoftware.Scrum6.Entity.RecoleccionEntity;
 import com.EcoSoftware.Scrum6.Entity.SolicitudRecoleccionEntity;
 import com.EcoSoftware.Scrum6.Entity.UsuarioEntity;
@@ -33,6 +35,7 @@ import com.EcoSoftware.Scrum6.Repository.SolicitudRecoleccionRepository;
 import com.EcoSoftware.Scrum6.Repository.UsuarioRepository;
 import com.EcoSoftware.Scrum6.Service.CloudinaryService;
 import com.EcoSoftware.Scrum6.Service.EmailService;
+import com.EcoSoftware.Scrum6.Service.GeocodingService;
 import com.EcoSoftware.Scrum6.Service.SolicitudRecoleccionService;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
@@ -81,6 +84,9 @@ public class SolicitudRecoleccionServiceImpl implements SolicitudRecoleccionServ
     private TemplateEngine templateEngine;
 
     @Autowired
+private GeocodingService geocodingService;
+
+    @Autowired
     private CloudinaryService cloudinaryService;
 
     private static final Logger logger = LoggerFactory.getLogger(SolicitudRecoleccionServiceImpl.class);
@@ -124,54 +130,75 @@ public class SolicitudRecoleccionServiceImpl implements SolicitudRecoleccionServ
     // Métodos CRUD
     // ==========================================================
 
-    @Override
-    public SolicitudRecoleccionDTO crearSolicitudConUsuario(SolicitudRecoleccionDTO dto, String correoUsuario) {
-        UsuarioEntity usuario = usuarioRepository.findByCorreo(correoUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con el correo: " + correoUsuario));
+  @Override
+public SolicitudRecoleccionDTO crearSolicitud(SolicitudRecoleccionDTO dto, String correoUsuario) {
 
-        SolicitudRecoleccionEntity entity = new SolicitudRecoleccionEntity();
-        entity.setUsuario(usuario);
-        entity.setTipoResiduo(dto.getTipoResiduo());
-        entity.setCantidad(dto.getCantidad());
-        entity.setDescripcion(dto.getDescripcion());
-        entity.setLocalidad(dto.getLocalidad());
-        entity.setUbicacion(dto.getUbicacion());
-        entity.setLatitude(dto.getLatitude());
-        entity.setLongitude(dto.getLongitude());
+    UsuarioEntity usuario = usuarioRepository.findByCorreo(correoUsuario)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        entity.setEvidencia(dto.getEvidencia());
-        entity.setFechaProgramada(dto.getFechaProgramada());
-        entity.setEstadoPeticion(EstadoPeticion.Pendiente);
-        entity.setFechaCreacionSolicitud(OffsetDateTime.now());
-
-        SolicitudRecoleccionEntity saved = solicitudRepository.save(entity);
-
-        // 3. Preparar plantilla Thymeleaf
-        Context context = new Context();
-        context.setVariable("nombre", usuario.getNombre());
-        context.setVariable("idSolicitud", saved.getIdSolicitud());
-        context.setVariable("estado", saved.getEstadoPeticion().name());
-        context.setVariable("tipoResiduo", entity.getTipoResiduo());
-        context.setVariable("cantidad", entity.getCantidad());
-        context.setVariable("descripcion", entity.getDescripcion());
-        context.setVariable("localidad", entity.getLocalidad());
-        context.setVariable("ubicacion", entity.getUbicacion());
-        context.setVariable("fechaProgramada",
-                entity.getFechaProgramada() != null ? entity.getFechaProgramada().toString() : "N/A");
-        context.setVariable("fechaCreacion",
-                saved.getFechaCreacionSolicitud() != null ? saved.getFechaCreacionSolicitud().toString() : "N/A");
-
-        String contenidoHtml = templateEngine.process("email-registroSolicitud", context);
-
-        // 4. Enviar correo HTML
-        String asunto = "Solicitud registrada correctamente";
-        emailService.enviarCorreo(usuario.getCorreo(), asunto, contenidoHtml);
-
-        // 5. Devolver DTO
-        return entityToDTO(saved);
+    if (dto.getFechaProgramada() == null) {
+        throw new RuntimeException("La fecha programada es obligatoria");
     }
 
+    if (dto.getFechaProgramada().isBefore(LocalDate.now())) {
+        throw new RuntimeException("La fecha no puede ser anterior a hoy");
+    }
 
+    if (dto.getUbicacion() == null || dto.getUbicacion().isBlank()) {
+        throw new RuntimeException("La ubicación es obligatoria");
+    }
+
+    SolicitudRecoleccionEntity entity = new SolicitudRecoleccionEntity();
+
+    entity.setUsuario(usuario);
+    entity.setTipoResiduo(dto.getTipoResiduo());
+    entity.setCantidad(dto.getCantidad());
+    entity.setDescripcion(dto.getDescripcion());
+    entity.setLocalidad(dto.getLocalidad());
+    entity.setUbicacion(dto.getUbicacion());
+
+    geocodingService.obtenerCoordenadas(dto.getUbicacion())
+    .ifPresentOrElse(coords -> {
+        entity.setLatitude(BigDecimal.valueOf(coords.latitud()));
+        entity.setLongitude(BigDecimal.valueOf(coords.longitud()));
+    }, () -> {
+        throw new RuntimeException("No se pudieron obtener coordenadas");
+    });
+
+    entity.setEvidencia(dto.getEvidencia());
+    entity.setFechaProgramada(dto.getFechaProgramada());
+    entity.setHoraProgramada(dto.getHoraProgramada());
+
+    entity.setEstadoPeticion(EstadoPeticion.Pendiente);
+    entity.setFechaCreacionSolicitud(OffsetDateTime.now());
+
+    SolicitudRecoleccionEntity saved = solicitudRepository.save(entity);
+
+    // EMAIL
+    Context context = new Context();
+    context.setVariable("nombre", usuario.getNombre());
+    context.setVariable("idSolicitud", saved.getIdSolicitud());
+    context.setVariable("estado", saved.getEstadoPeticion().name());
+    context.setVariable("tipoResiduo", entity.getTipoResiduo());
+    context.setVariable("cantidad", entity.getCantidad());
+    context.setVariable("descripcion", entity.getDescripcion());
+    context.setVariable("localidad", entity.getLocalidad());
+    context.setVariable("ubicacion", entity.getUbicacion());
+    context.setVariable("fechaProgramada",
+        entity.getFechaProgramada() != null ? entity.getFechaProgramada().toString() : "N/A");
+    context.setVariable("horaProgramada",
+        entity.getHoraProgramada() != null ? entity.getHoraProgramada().toString() : "N/A");
+
+    String html = templateEngine.process("email-registroSolicitud", context);
+
+    emailService.enviarCorreo(
+        usuario.getCorreo(),
+        "Solicitud registrada correctamente",
+        html
+    );
+
+    return entityToDTO(saved);
+}
     @Override
 public String subirEvidencia(MultipartFile file, Long idSolicitud) throws IOException {
 
@@ -209,6 +236,7 @@ public String subirEvidencia(MultipartFile file, Long idSolicitud) throws IOExce
         return entityToDTO(entity);
     }
 
+
     @Override
     public List<SolicitudRecoleccionDTO> listarTodas() {
         return solicitudRepository.findAll().stream()
@@ -223,57 +251,55 @@ public String subirEvidencia(MultipartFile file, Long idSolicitud) throws IOExce
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public SolicitudRecoleccionDTO aceptarSolicitud(Long solicitudId) {
-        SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(solicitudId)
-                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+  @Override
+public SolicitudRecoleccionDTO aceptarSolicitud(Long solicitudId) {
 
-        if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
-            throw new RuntimeException("Solo se pueden aceptar solicitudes pendientes");
-        }
+    SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(solicitudId)
+            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
-        // Obtener el usuario reciclador/recolector autenticado
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String correoRecolector = auth.getName();
-        UsuarioEntity recolector = usuarioRepository.findByCorreo(correoRecolector)
-                .orElseThrow(() -> new RuntimeException("Recolector no encontrado: " + correoRecolector));
-
-        // 1. Actualizar Solicitud
-        solicitud.setAceptadaPor(recolector);
-        solicitud.setEstadoPeticion(EstadoPeticion.Aceptada);
-
-        // 2. Crear nueva Recoleccion
-        RecoleccionEntity recoleccion = new RecoleccionEntity();
-        recoleccion.setSolicitud(solicitud);
-        recoleccion.setRecolector(recolector);
-        recoleccion.setEstado(com.EcoSoftware.Scrum6.Enums.EstadoRecoleccion.Pendiente);
-        recoleccion.setFechaRecoleccion(solicitud.getFechaProgramada());
-        recoleccion.setEvidencia(solicitud.getEvidencia());
-        recoleccion.setObservaciones("Recolección iniciada y aceptada por: " + recolector.getNombre());
-        solicitud.setRecoleccion(recoleccion); // Establecer la relación bidireccional
-
-        // Guardar la solicitud (asumiendo CascadeType.ALL para RecoleccionEntity)
-        SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
-
-        UsuarioEntity usuarioSolicitante = solicitud.getUsuario();
-
-        // Preparamos plantilla HTML
-        Context context = new Context();
-        context.setVariable("nombre", usuarioSolicitante.getNombre());
-        context.setVariable("idSolicitud", solicitud.getIdSolicitud());
-        context.setVariable("nombreRecolector", recolector.getNombre());
-        context.setVariable("estadoPeticion", solicitud.getEstadoPeticion().name());
-        context.setVariable("fechaProgramada",
-                solicitud.getFechaProgramada() != null ? solicitud.getFechaProgramada().toString() : "N/A");
-
-        String contenidoHtml = templateEngine.process("email-aceptaSolicitud", context);
-
-        // Enviamos correo HTML
-        String asunto = "Tu solicitud de recolección ha sido aceptada";
-        emailService.enviarCorreo(usuarioSolicitante.getCorreo(), asunto, contenidoHtml);
-
-        return entityToDTO(saved);
+    if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
+        throw new RuntimeException("Solo se pueden aceptar solicitudes pendientes");
     }
+
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    String correoRecolector = auth.getName();
+
+    UsuarioEntity recolector = usuarioRepository.findByCorreo(correoRecolector)
+            .orElseThrow(() -> new RuntimeException("Recolector no encontrado"));
+
+    solicitud.setAceptadaPor(recolector);
+    solicitud.setEstadoPeticion(EstadoPeticion.Aceptada);
+
+    RecoleccionEntity recoleccion = new RecoleccionEntity();
+    recoleccion.setSolicitud(solicitud);
+    recoleccion.setRecolector(recolector);
+    recoleccion.setEstado(com.EcoSoftware.Scrum6.Enums.EstadoRecoleccion.Pendiente);
+    recoleccion.setFechaRecoleccion(solicitud.getFechaProgramada());
+    solicitud.setRecoleccion(recoleccion);
+
+    SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
+
+    // EMAIL
+    UsuarioEntity usuarioSolicitante = solicitud.getUsuario();
+
+    Context context = new Context();
+    context.setVariable("nombre", usuarioSolicitante.getNombre());
+    context.setVariable("idSolicitud", solicitud.getIdSolicitud());
+    context.setVariable("nombreRecolector", recolector.getNombre());
+    context.setVariable("estadoPeticion", solicitud.getEstadoPeticion().name());
+    context.setVariable("fechaProgramada", solicitud.getFechaProgramada().toString());
+
+    String html = templateEngine.process("email-aceptaSolicitud", context);
+
+    emailService.enviarCorreo(
+            usuarioSolicitante.getCorreo(),
+            "Tu solicitud fue aceptada",
+            html
+    );
+
+    return entityToDTO(saved);
+}
+
 
     @Override
     public SolicitudRecoleccionDTO rechazarSolicitud(Long solicitudId, String motivo) {
@@ -315,71 +341,91 @@ public String subirEvidencia(MultipartFile file, Long idSolicitud) throws IOExce
 
         return entityToDTO(saved);
     }
+
 @Override
-public SolicitudRecoleccionDTO actualizarSolicitudConUsuario(SolicitudRecoleccionDTO dto, String correoUsuario) {
-    // 1️⃣ Obtener la solicitud
-    SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(dto.getIdSolicitud())
+public SolicitudRecoleccionDTO actualizarSolicitud(Long id, SolicitudRecoleccionDTO dto, String correoUsuario) {
+
+    SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
-    // 2️⃣ Obtener el usuario logueado
-    UsuarioEntity usuarioLogueado = usuarioRepository.findByCorreo(correoUsuario)
+    UsuarioEntity usuario = usuarioRepository.findByCorreo(correoUsuario)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-    // 3️⃣ Verificar permisos
-    boolean esAdministrador = usuarioLogueado.getRol().getNombre().equals("Administrador");
-    boolean esDuenio = solicitud.getUsuario().getIdUsuario().equals(usuarioLogueado.getIdUsuario());
+    boolean esAdmin = usuario.getRol().getNombre().equals("Administrador");
+    boolean esDuenio = solicitud.getUsuario().getIdUsuario().equals(usuario.getIdUsuario());
 
-    if (!esAdministrador && !esDuenio) {
-        throw new RuntimeException("No tienes permiso para actualizar esta solicitud");
+    if (!esAdmin && !esDuenio) {
+        throw new RuntimeException("No tienes permiso");
     }
 
-    // 4️⃣ Solo se pueden actualizar solicitudes pendientes
     if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
-        throw new RuntimeException("Solo se pueden actualizar solicitudes pendientes");
+        throw new RuntimeException("Solo se puede editar si está pendiente");
     }
 
-    // 5️⃣ Actualizar campos
-    solicitud.setTipoResiduo(dto.getTipoResiduo());
-    solicitud.setCantidad(dto.getCantidad());
-    solicitud.setDescripcion(dto.getDescripcion());
-    solicitud.setLocalidad(dto.getLocalidad());
-    solicitud.setUbicacion(dto.getUbicacion());
-    solicitud.setLatitude(dto.getLatitude());
-    solicitud.setLongitude(dto.getLongitude());
-    solicitud.setEvidencia(dto.getEvidencia());
-    solicitud.setFechaProgramada(dto.getFechaProgramada());
+    // VALIDACIÓN DE FECHA
+    if (dto.getFechaProgramada() != null &&
+        dto.getFechaProgramada().isBefore(LocalDate.now())) {
+        throw new RuntimeException("La fecha no puede ser anterior a hoy");
+    }
 
-    // 6️⃣ Guardar y retornar
-    SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
-    return entityToDTO(saved);
+    // ACTUALIZAR SOLO SI VIENE INFORMACIÓN
+    if (dto.getTipoResiduo() != null)
+        solicitud.setTipoResiduo(dto.getTipoResiduo());
+
+    if (dto.getCantidad() != null)
+        solicitud.setCantidad(dto.getCantidad());
+
+    if (dto.getDescripcion() != null)
+        solicitud.setDescripcion(dto.getDescripcion());
+
+    if (dto.getLocalidad() != null)
+        solicitud.setLocalidad(dto.getLocalidad());
+
+    // GEOCODING
+    if (dto.getUbicacion() != null && !dto.getUbicacion().isBlank()) {
+        solicitud.setUbicacion(dto.getUbicacion());
+
+        geocodingService.obtenerCoordenadas(dto.getUbicacion())
+    .ifPresentOrElse(coords -> {
+        solicitud.setLatitude(BigDecimal.valueOf(coords.latitud()));
+        solicitud.setLongitude(BigDecimal.valueOf(coords.longitud()));
+    }, () -> {
+        throw new RuntimeException("No se pudieron obtener coordenadas");
+    });
+    }
+
+    if (dto.getFechaProgramada() != null)
+        solicitud.setFechaProgramada(dto.getFechaProgramada());
+
+    if (dto.getHoraProgramada() != null)
+        solicitud.setHoraProgramada(dto.getHoraProgramada());
+
+    return entityToDTO(solicitudRepository.save(solicitud));
 }
-    @Override
+
+   @Override
 public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
 
     SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(solicitudId)
             .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
-    // Solo el usuario dueño puede cancelar
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    String correoUsuario = auth.getName();
+    String correo = auth.getName();
 
-    UsuarioEntity usuario = usuarioRepository.findByCorreo(correoUsuario)
+    UsuarioEntity usuario = usuarioRepository.findByCorreo(correo)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
     if (!solicitud.getUsuario().getIdUsuario().equals(usuario.getIdUsuario())) {
-        throw new RuntimeException("No tienes permiso para cancelar esta solicitud");
+        throw new RuntimeException("No tienes permiso");
     }
 
-    // Solo se puede cancelar si está pendiente
     if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
         throw new RuntimeException("Solo se pueden cancelar solicitudes pendientes");
     }
 
     solicitud.setEstadoPeticion(EstadoPeticion.Cancelada);
 
-    SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
-
-    return entityToDTO(saved);
+    return entityToDTO(solicitudRepository.save(solicitud));
 }
 
     // ==========================================================
@@ -404,19 +450,13 @@ public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
                 .map(this::entityToDTO)
                 .collect(Collectors.toList());
 
-        // 3. Filtrar por fechas (opcional)
-        if (fechaInicio == null && fechaFin == null) {
-            return dtos;
-        }
+       
 
         return dtos.stream().filter(dto -> {
-            LocalDateTime fecha = dto.getFechaProgramada();
+            LocalDate fecha = dto.getFechaProgramada();
             if (fecha == null)
                 return false;
-            if (fechaInicio != null && fecha.isBefore(fechaInicio))
-                return false;
-            if (fechaFin != null && fecha.isAfter(fechaFin))
-                return false;
+        
             return true;
         }).collect(Collectors.toList());
     }
@@ -491,7 +531,7 @@ public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
             row.createCell(10).setCellValue(
                     Optional.ofNullable(s.getFechaCreacionSolicitud()).map(OffsetDateTime::toString).orElse(""));
             row.createCell(11)
-                    .setCellValue(Optional.ofNullable(s.getFechaProgramada()).map(LocalDateTime::toString).orElse(""));
+                    .setCellValue(Optional.ofNullable(s.getFechaProgramada()).map(LocalDate::toString).orElse(""));
             row.createCell(12).setCellValue(Optional.ofNullable(s.getRecoleccionId()).orElse(0L).doubleValue());
         }
 
@@ -553,7 +593,7 @@ public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
             table.addCell(Optional.ofNullable(s.getLocalidad()).map(Enum::name).orElse(""));
             table.addCell(Optional.ofNullable(s.getUbicacion()).orElse(""));
             table.addCell(Optional.ofNullable(s.getFechaCreacionSolicitud()).map(OffsetDateTime::toString).orElse(""));
-            table.addCell(Optional.ofNullable(s.getFechaProgramada()).map(LocalDateTime::toString).orElse(""));
+            table.addCell(Optional.ofNullable(s.getFechaProgramada()).map(LocalDate::toString).orElse(""));
             table.addCell(Optional.ofNullable(s.getRecoleccionId()).map(Object::toString).orElse(""));
         }
 

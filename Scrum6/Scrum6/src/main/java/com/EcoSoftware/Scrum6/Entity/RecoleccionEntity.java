@@ -1,5 +1,6 @@
 package com.EcoSoftware.Scrum6.Entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import org.hibernate.annotations.CreationTimestamp;
@@ -26,12 +27,12 @@ public class RecoleccionEntity {
     private SolicitudRecoleccionEntity solicitud;
 
     // Usuario (reciclador o empresa) que aceptó la solicitud
-    @ManyToOne
-    @JoinColumn(name = "recolector_id", nullable = false)
-    private UsuarioEntity recolector;
+   @ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "recolector_id", nullable = false)
+private UsuarioEntity recolector;
 
     // Ruta a la que pertenece la recolección (puede ser null al inicio)
-    @ManyToOne
+   @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ruta_id", nullable = true)
     private RutaRecoleccionEntity ruta;
 
@@ -40,7 +41,7 @@ public class RecoleccionEntity {
 private EstadoRecoleccion estado = EstadoRecoleccion.Pendiente;
 
     @Column(name = "fecha_recoleccion")
-    private LocalDateTime fechaRecoleccion;
+    private LocalDate fechaRecoleccion;
 
     private Integer ordenParada;
 

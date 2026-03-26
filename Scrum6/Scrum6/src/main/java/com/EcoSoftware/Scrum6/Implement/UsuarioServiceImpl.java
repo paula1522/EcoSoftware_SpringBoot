@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import jakarta.transaction.Transactional;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -482,14 +483,16 @@ usuario.setContrasena(passwordEncoder.encode(usuario.getContrasena()));
     }
 
     @Override
-    public void eliminacionPorEstado(Long idUsuario) {
-        int filasActualizadas = usuarioRepository.eliminacionLogica(idUsuario);
-        if (filasActualizadas == 0) {
-            throw new RuntimeException("Usuario no encontrado con ID: " + idUsuario);
-        }
+    @Transactional
+    public void eliminacionPorEstado(Long id) {
+        UsuarioEntity usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con id: " + id));
+        usuario.setEstado(!usuario.getEstado());
+        usuarioRepository.save(usuario);
     }
 
-  @Override
+
+    @Override
 public void cambiarEstado(Long idUsuario) {
     UsuarioEntity usuario = usuarioRepository.findById(idUsuario)
         .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));

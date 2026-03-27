@@ -28,6 +28,13 @@ public class RecoleccionServiceImpl implements RecoleccionService {
                 .toList();
 
     }
+    @Override
+public List<RecoleccionDTO> listarPorSolicitante(Long usuarioId) {
+    return recoleccionRepository.findBySolicitud_Usuario_IdUsuario(usuarioId)
+            .stream()
+            .map(this::convertirADTO)
+            .toList();
+}
 
     @Override
     public List<RecoleccionDTO> listarTodasRecolector(Long recolectorId) {
@@ -91,6 +98,8 @@ public class RecoleccionServiceImpl implements RecoleccionService {
                 .map(this::convertirADTO)
                 .toList();
     }
+
+    
 
     // ========================================================
     // CONTROL ESTRICTO DE CAMBIO DE ESTADO

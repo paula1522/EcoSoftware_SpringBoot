@@ -66,6 +66,8 @@ public class RutaRecoleccionController {
         return ResponseEntity.ok(rutaService.listarPorRecolector(recolector.getIdUsuario()));
     }
 
+    
+
     // ========== ACCIONES DE ESTADO ==========
     @PutMapping("/{id}/iniciar")
     public ResponseEntity<RutaRecoleccionDTO> iniciarRuta(@PathVariable Long id) {

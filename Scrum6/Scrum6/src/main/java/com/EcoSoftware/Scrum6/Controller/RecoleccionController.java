@@ -86,6 +86,25 @@ public class RecoleccionController {
     }
 
     // ===========================
+// LISTAR RECOLECCIONES DEL CIUDADANO AUTENTICADO (basado en sus solicitudes)
+// ===========================
+@GetMapping("/mis-recolecciones-ciudadano")
+public ResponseEntity<List<RecoleccionDTO>> listarMisRecoleccionesCiudadano() {
+    UsuarioEntity ciudadano = obtenerUsuarioAutenticado();
+    List<RecoleccionDTO> recolecciones = recoleccionService.listarPorSolicitante(ciudadano.getIdUsuario());
+    return ResponseEntity.ok(recolecciones);
+}
+
+    // ===========================
+// LISTAR TODAS LAS RECOLECCIONES DEL RECOLECTOR AUTENTICADO (INCLUYE CANCELADAS)
+// ===========================
+@GetMapping("/mis-recolecciones/todas")
+public ResponseEntity<List<RecoleccionDTO>> listarMisRecoleccionesTodas() {
+    UsuarioEntity recolector = obtenerUsuarioAutenticado();
+    return ResponseEntity.ok(recoleccionService.listarTodasRecolector(recolector.getIdUsuario()));
+}
+
+    // ===========================
     // ACTUALIZAR ESTADO
     // ===========================
     @PutMapping("/{id}/estado")

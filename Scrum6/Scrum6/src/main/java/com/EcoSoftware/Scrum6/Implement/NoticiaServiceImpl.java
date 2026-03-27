@@ -1,6 +1,7 @@
 package com.EcoSoftware.Scrum6.Implement;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -23,6 +24,7 @@ public class NoticiaServiceImpl implements NoticiaService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
+     @Cacheable(value = "noticias", unless = "#result == null || #result.isEmpty()")
     public List<NoticiaDTO> obtenerNoticias() {
 
         String url = apiUrl

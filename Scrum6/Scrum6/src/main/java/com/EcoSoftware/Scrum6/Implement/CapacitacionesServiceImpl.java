@@ -20,8 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.CapacitacionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.EvaluacionDTO;
-import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.IntentoEvaluacionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.InscripcionDTO;
+import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.IntentoEvaluacionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.ModuloDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.ProgresoDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.UploadResultDTO;
@@ -78,18 +78,22 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     @Autowired
     private CloudinaryService cloudinaryService;
 
-    /** Verificar si la capacitacion existe por nombre o descripcion */
+    /**
+     * Verificar si la capacitacion existe por nombre o descripcion
+     */
     @Override
     public boolean existeCapacitacionPorNombre(String nombre) {
-        if (nombre == null || nombre.trim().isEmpty())
+        if (nombre == null || nombre.trim().isEmpty()) {
             return false;
+        }
         return capacitacionRepository.existsByNombreIgnoreCase(nombre.trim());
     }
 
     @Override
     public boolean existeCapacitacionPorDescripcion(String descripcion) {
-        if (descripcion == null || descripcion.trim().isEmpty())
+        if (descripcion == null || descripcion.trim().isEmpty()) {
             return false;
+        }
         return capacitacionRepository.existsByDescripcionIgnoreCase(descripcion.trim());
     }
 
@@ -97,10 +101,12 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     // UTIL: distancia de Levenshtein / similitud
     // ============================
     private int calcularDistanciaLevenshtein(String a, String b) {
-        if (a == null)
+        if (a == null) {
             a = "";
-        if (b == null)
+        }
+        if (b == null) {
             b = "";
+        }
         a = a.toLowerCase();
         b = b.toLowerCase();
 
@@ -122,12 +128,14 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     }
 
     private boolean esSimilar(String a, String b) {
-        if (a == null || b == null)
+        if (a == null || b == null) {
             return false;
+        }
         int distancia = calcularDistanciaLevenshtein(a, b);
         int longitud = Math.max(a.length(), b.length());
-        if (longitud == 0)
+        if (longitud == 0) {
             return true;
+        }
         double similarity = 1.0 - ((double) distancia / longitud);
         // Umbral configurable: 0.70 => 70% de similaridad o más
         return similarity >= 0.70;
@@ -141,20 +149,20 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
         List<CapacitacionDTO> resultado = new ArrayList<>();
         List<CapacitacionEntity> existentes = capacitacionRepository.findAll();
 
-        try (InputStream inputStream = file.getInputStream();
-                Workbook workbook = new XSSFWorkbook(inputStream)) {
+        try (InputStream inputStream = file.getInputStream(); Workbook workbook = new XSSFWorkbook(inputStream)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             for (Row row : sheet) {
-                if (row.getRowNum() == 0)
+                if (row.getRowNum() == 0) {
                     continue; // Saltar encabezado
-
+                }
                 String nombre = getCellValue(row.getCell(0));
                 String descripcion = getCellValue(row.getCell(1));
 
                 // Ignorar filas sin nombre
-                if (nombre == null || nombre.isBlank())
+                if (nombre == null || nombre.isBlank()) {
                     continue;
+                }
 
                 boolean nombreExacto = existentes.stream()
                         .anyMatch(c -> c.getNombre() != null && c.getNombre().equalsIgnoreCase(nombre));
@@ -195,9 +203,9 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     }
 
     /**
-     * Carga masiva de capacitaciones desde un archivo Excel.
-     * Ahora devuelve un UploadResultDTO con detalles.
-     * Solo crea nuevas capacitaciones (no actualiza existentes).
+     * Carga masiva de capacitaciones desde un archivo Excel. Ahora devuelve un
+     * UploadResultDTO con detalles. Solo crea nuevas capacitaciones (no
+     * actualiza existentes).
      */
     @Override
     public UploadResultDTO cargarCapacitacionesDesdeExcel(MultipartFile file) {
@@ -232,14 +240,13 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
 
         List<CapacitacionEntity> paraGuardar = new ArrayList<>();
 
-        try (InputStream inputStream = file.getInputStream();
-                Workbook workbook = new XSSFWorkbook(inputStream)) {
+        try (InputStream inputStream = file.getInputStream(); Workbook workbook = new XSSFWorkbook(inputStream)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
-            if (rows.hasNext())
+            if (rows.hasNext()) {
                 rows.next(); // saltar encabezado
-
+            }
             while (rows.hasNext()) {
                 Row row = rows.next();
                 totalLeidas++;
@@ -301,8 +308,9 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     }
 
     /**
-     * Genera una plantilla Excel con los campos requeridos para la carga masiva.
-     * Devuelve un arreglo de bytes que se puede descargar desde el frontend.
+     * Genera una plantilla Excel con los campos requeridos para la carga
+     * masiva. Devuelve un arreglo de bytes que se puede descargar desde el
+     * frontend.
      */
     @Override
     public byte[] generarPlantillaExcel() {
@@ -336,8 +344,9 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
      * Método auxiliar para leer valores de celda como String.
      */
     private String getCellValue(Cell cell) {
-        if (cell == null)
+        if (cell == null) {
             return null;
+        }
         switch (cell.getCellType()) {
             case STRING:
                 return cell.getStringCellValue().trim();
@@ -356,8 +365,9 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
                 } catch (Exception ex) {
                     try {
                         double dv = cell.getNumericCellValue();
-                        if (dv == Math.floor(dv))
+                        if (dv == Math.floor(dv)) {
                             return String.valueOf((long) dv);
+                        }
                         return String.valueOf(dv);
                     } catch (Exception e) {
                         return null;
@@ -588,18 +598,19 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
             Iterator<Row> rows = sheet.iterator();
             List<ModuloEntity> modulos = new ArrayList<>();
 
-            if (rows.hasNext())
+            if (rows.hasNext()) {
                 rows.next(); // Saltar encabezado
-
+            }
             while (rows.hasNext()) {
                 Row row = rows.next();
 
                 String duracion = getCellValue(row.getCell(0));
                 String descripcion = getCellValue(row.getCell(1));
 
-                if ((duracion == null || duracion.isBlank()) &&
-                        (descripcion == null || descripcion.isBlank()))
+                if ((duracion == null || duracion.isBlank())
+                        && (descripcion == null || descripcion.isBlank())) {
                     continue;
+                }
 
                 ModuloEntity m = new ModuloEntity();
                 m.setDuracion(duracion);
@@ -881,8 +892,8 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     private void actualizarProgresoDesdeEvaluaciones(Long usuarioId, Long cursoId) {
         long totalEvaluaciones = evaluacionRepository.countByModulo_Capacitacion_Id(cursoId);
         long evaluacionesAprobadas = evaluacionIntentoRepository
-            .countDistinctByEvaluacion_Modulo_Capacitacion_IdAndUsuario_IdUsuarioAndAprobadoTrue(cursoId,
-                usuarioId);
+                .countDistinctByEvaluacion_Modulo_Capacitacion_IdAndUsuario_IdUsuarioAndAprobadoTrue(cursoId,
+                        usuarioId);
 
         ProgresoEntity progreso = progresoRepository.findByCursoIdAndUsuario_IdUsuario(cursoId, usuarioId)
                 .orElseGet(() -> {

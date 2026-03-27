@@ -26,6 +26,8 @@ public interface UsuarioService {
     // Listados y contador para admin
     List<UsuarioDTO> listarUsuariosPendientes(); // devuelve usuarios con estado = false
 
+    List<UsuarioDTO> listarUsuariosAprobados();
+
     Long contarUsuariosPendientes();
 
     // Subida de documentos 

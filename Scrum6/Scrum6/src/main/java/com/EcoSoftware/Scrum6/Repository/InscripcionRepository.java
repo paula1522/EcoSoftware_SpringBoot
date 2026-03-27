@@ -15,4 +15,6 @@ public interface InscripcionRepository extends JpaRepository<InscripcionEntity, 
     List<InscripcionEntity> findByCursoId(Long cursoId);
 
     boolean existsByUsuario_IdUsuarioAndCurso_Id(Long usuarioId, Long cursoId);
+
+    void deleteByCursoId(Long cursoId);
 }

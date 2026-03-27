@@ -174,6 +174,15 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
+    public List<UsuarioDTO> listarUsuariosAprobados() {
+        return usuarioRepository
+                .findByEstadoRegistro(EstadoRegistro.APROBADO)
+                .stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
+
+    @Override
     public Long contarUsuariosPendientes() {
         return usuarioRepository.countByEstadoRegistro(EstadoRegistro.PENDIENTE_REVISAR);
     }

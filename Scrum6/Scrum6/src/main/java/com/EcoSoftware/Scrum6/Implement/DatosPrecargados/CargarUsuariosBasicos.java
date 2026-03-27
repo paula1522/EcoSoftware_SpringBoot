@@ -1,16 +1,18 @@
 package com.EcoSoftware.Scrum6.Implement.DatosPrecargados;
 
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
 import com.EcoSoftware.Scrum6.Entity.RolEntity;
 import com.EcoSoftware.Scrum6.Entity.UsuarioEntity;
 import com.EcoSoftware.Scrum6.Enums.EstadoRegistro;
 import com.EcoSoftware.Scrum6.Repository.RolRepository;
 import com.EcoSoftware.Scrum6.Repository.UsuarioRepository;
 import com.EcoSoftware.Scrum6.Util.PasswordPolicyUtil;
+
 import jakarta.transaction.Transactional;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.core.annotation.Order;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 @Component
 @Order(2)
@@ -21,8 +23,8 @@ public class CargarUsuariosBasicos implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     public CargarUsuariosBasicos(UsuarioRepository usuarioRepository,
-                                 RolRepository rolRepository,
-                                 PasswordEncoder passwordEncoder) {
+            RolRepository rolRepository,
+            PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
@@ -32,15 +34,26 @@ public class CargarUsuariosBasicos implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
 
-                crearOActualizarUsuarioBase(
-                "jaiandroaber@gmail.com",   // correo
-                "Administrador",            // nombre
-                "Administrador#2026",            // contraseña
-                "1000070000",               // cédula
-                "3070000000",               // teléfono
+        crearOActualizarUsuarioBase(
+                "jaiandroaber@gmail.com", // correo
+                "Administrador", // nombre
+                "Administrador#2026", // contraseña
+                "1000070000", // cédula
+                "3070000000", // teléfono
                 RolEntity.TipoDeRol.Administrador,
-                "Teusaquillo",              // localidad
-                EstadoRegistro.APROBADO      // estadoRegistro
+                "Teusaquillo", // localidad
+                EstadoRegistro.APROBADO // estadoRegistro
+        );
+
+        crearOActualizarUsuarioBase(
+                "admin@gmail.com", // correo
+                "Administrador", // nombre
+                "Admin#2026", // contraseña
+                "1100070000", // cédula
+                "3170000000", // teléfono
+                RolEntity.TipoDeRol.Administrador,
+                "Teusaquillo", // localidad
+                EstadoRegistro.APROBADO // estadoRegistro
         );
 
         crearOActualizarUsuarioBase(
@@ -50,8 +63,8 @@ public class CargarUsuariosBasicos implements CommandLineRunner {
                 "2000090070",
                 "3000041111",
                 RolEntity.TipoDeRol.Ciudadano,
-                "Ciudad_Bolivar",              
-                EstadoRegistro.APROBADO      // estadoRegistro
+                "Ciudad_Bolivar",
+                EstadoRegistro.APROBADO // estadoRegistro
         );
 
         crearOActualizarUsuarioBase(
@@ -61,8 +74,8 @@ public class CargarUsuariosBasicos implements CommandLineRunner {
                 "30071200000",
                 "3450002222",
                 RolEntity.TipoDeRol.Empresa,
-                "Antonio_Nariño",              
-                EstadoRegistro.PENDIENTE_REVISAR     // estadoRegistro
+                "Antonio_Nariño",
+                EstadoRegistro.PENDIENTE_REVISAR // estadoRegistro
         );
 
         crearOActualizarUsuarioBase(
@@ -72,14 +85,14 @@ public class CargarUsuariosBasicos implements CommandLineRunner {
                 "400047250000",
                 "3700003333",
                 RolEntity.TipoDeRol.Reciclador,
-                "Bosa",              
-                EstadoRegistro.PENDIENTE_REVISAR     // estadoRegistro
+                "Bosa",
+                EstadoRegistro.PENDIENTE_REVISAR // estadoRegistro
         );
 
         System.out.println(">>> Usuarios base verificados/creados correctamente");
     }
 
-        private void crearOActualizarUsuarioBase(
+    private void crearOActualizarUsuarioBase(
             String correo,
             String nombre,
             String contrasenaPlano,

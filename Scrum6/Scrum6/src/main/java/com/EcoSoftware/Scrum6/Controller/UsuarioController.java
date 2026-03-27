@@ -144,6 +144,11 @@ public ResponseEntity<List<UsuarioDTO>> listarPendientes() {
     return ResponseEntity.ok(usuarioService.listarUsuariosPendientes());
 }
 
+@GetMapping("/aceptados")
+public ResponseEntity<List<UsuarioDTO>> listarAprobados() {
+        return ResponseEntity.ok(usuarioService.listarUsuariosAprobados());
+    }
+
 // Contador de pendientes
 @GetMapping("/pendientes/count")
 public ResponseEntity<Long> contarPendientes() {

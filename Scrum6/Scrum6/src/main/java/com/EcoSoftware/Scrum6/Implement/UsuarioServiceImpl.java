@@ -745,11 +745,12 @@ public void cambiarEstado(Long idUsuario) {
 
         usuarioRepository.save(usuario);
 
-        String link = "http://localhost:4200/reset-password?token=" + token;
+        String link = "String link = \"https://ecosoftware.azurewebsites.net/reset-password?token=\" + token;\n" + token;
 
         Context context = new Context();
         context.setVariable("nombre", usuario.getNombre());
         context.setVariable("link", link);
+        context.setVariable("token", token);
 
         String html = templateEngine.process("email-recuperacion", context);
 

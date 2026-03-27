@@ -274,12 +274,11 @@ public List<SolicitudRecoleccionDTO> listarTodas() {
         UsuarioEntity recolector = usuarioRepository.findByCorreo(correoRecolector)
                 .orElseThrow(() -> new UsuarioNotFoundException("Recolector no encontrado"));
 
-        // Validar rol: debe ser Recolector o Administrador
+        // Validar rol
         String rol = recolector.getRol().getNombre();
-        if (!"Recolector".equals(rol) && !"Administrador".equals(rol)) {
-            throw new AccesoDenegadoException("No tienes permisos para aceptar solicitudes");
-        }
-
+if ("Ciudadano".equals(rol)) {
+    throw new AccesoDenegadoException("No tienes permisos para aceptar solicitudes");
+}
         solicitud.setAceptadaPor(recolector);
         solicitud.setEstadoPeticion(EstadoPeticion.Aceptada);
 

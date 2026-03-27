@@ -62,4 +62,6 @@ Long countByEstadoRegistro(EstadoRegistro estadoRegistro);
             "GROUP BY u.localidad")
     List<Object[]> contarUsuariosPorLocalidad();
     Optional<UsuarioEntity> findByCorreoIgnoreCase(String correo);
+
+    Optional<UsuarioEntity> findByTokenRecuperacion(String token);
 }

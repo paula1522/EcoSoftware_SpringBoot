@@ -109,4 +109,8 @@ private EstadoRegistro estadoRegistro;
     private void preUpdate() {
         this.fechaActualizacion = LocalDateTime.now();
     }
+
+    private String tokenRecuperacion;
+    private LocalDateTime fechaToken;
+
 }

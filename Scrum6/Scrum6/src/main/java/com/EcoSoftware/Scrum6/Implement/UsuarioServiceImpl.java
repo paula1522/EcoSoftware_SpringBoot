@@ -4,13 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import jakarta.transaction.Transactional;
 import org.apache.poi.ss.usermodel.Row;
@@ -732,6 +726,60 @@ public void cambiarEstado(Long idUsuario) {
 
         // 🔥 Encriptar nueva contraseña
         usuario.setContrasena(passwordEncoder.encode(nueva));
+        usuario.setFechaActualizacion(LocalDateTime.now());
+
+        usuarioRepository.save(usuario);
+    }
+
+
+    @Override
+    public void enviarCorreoRecuperacion(String correo) {
+
+        UsuarioEntity usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new RuntimeException("Correo no registrado"));
+
+        String token = UUID.randomUUID().toString();
+
+        usuario.setTokenRecuperacion(token);
+        usuario.setFechaToken(LocalDateTime.now());
+
+        usuarioRepository.save(usuario);
+
+        String link = "http://localhost:4200/reset-password?token=" + token;
+
+        Context context = new Context();
+        context.setVariable("nombre", usuario.getNombre());
+        context.setVariable("link", link);
+
+        String html = templateEngine.process("email-recuperacion", context);
+
+        emailService.enviarCorreo(
+                usuario.getCorreo(),
+                "Recuperación de contraseña",
+                html
+        );
+    }
+
+    @Override
+    public void resetearContrasena(String token, String nuevaPassword) {
+
+        UsuarioEntity usuario = usuarioRepository.findByTokenRecuperacion(token)
+                .orElseThrow(() -> new RuntimeException("Token inválido"));
+
+        // 🔥 Validar expiración (ej: 30 min)
+        if (usuario.getFechaToken().plusMinutes(30).isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token expirado");
+        }
+
+        // 🔥 Validar contraseña
+        PasswordPolicyUtil.validar(nuevaPassword);
+
+        usuario.setContrasena(passwordEncoder.encode(nuevaPassword));
+
+        // 🔥 Limpiar token
+        usuario.setTokenRecuperacion(null);
+        usuario.setFechaToken(null);
+
         usuario.setFechaActualizacion(LocalDateTime.now());
 
         usuarioRepository.save(usuario);

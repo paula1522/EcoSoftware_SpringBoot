@@ -73,4 +73,8 @@ public interface UsuarioService {
             throws IOException, DocumentException;
 
     void cambiarContrasena(Long idUsuario, String actual, String nueva);
+
+    public void enviarCorreoRecuperacion(String correo);
+
+    void resetearContrasena(String token, String nueva);
 }

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -348,64 +349,82 @@ public List<SolicitudRecoleccionDTO> listarTodas() {
     }
 
     @Override
-    public SolicitudRecoleccionDTO actualizarSolicitud(Long id, SolicitudRecoleccionDTO dto, String correoUsuario) {
-
+public SolicitudRecoleccionDTO actualizarSolicitud(Long id, SolicitudRecoleccionDTO dto, String correoUsuario) {
+    try {
+        // 1. Obtener entidades
         SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
-
+        
         UsuarioEntity usuario = usuarioRepository.findByCorreo(correoUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
+        logger.info("Actualizando solicitud {} con estado actual {}", id, solicitud.getEstadoPeticion());
+
+        // 2. Permisos
         boolean esAdmin = usuario.getRol().getNombre().equals("Administrador");
         boolean esDuenio = solicitud.getUsuario().getIdUsuario().equals(usuario.getIdUsuario());
-
         if (!esAdmin && !esDuenio) {
             throw new RuntimeException("No tienes permiso");
         }
 
-        if (solicitud.getEstadoPeticion() != EstadoPeticion.Pendiente) {
-            throw new RuntimeException("Solo se puede editar si está pendiente");
+        // 3. Estados permitidos
+        EstadoPeticion estadoActual = solicitud.getEstadoPeticion();
+        if (estadoActual != EstadoPeticion.Pendiente && estadoActual != EstadoPeticion.Cancelada) {
+            throw new RuntimeException("Solo se puede editar si está pendiente o cancelada");
         }
 
-        // VALIDACIÓN DE FECHA
-        if (dto.getFechaProgramada() != null &&
-                dto.getFechaProgramada().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("La fecha no puede ser anterior a hoy");
+        // 4. Validación de fecha 
+        if (dto.getFechaProgramada() != null) {
+            LocalDateTime hoyInicio = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+            if (dto.getFechaProgramada().isBefore(hoyInicio)) {
+                throw new RuntimeException("La fecha no puede ser anterior a hoy");
+            }
         }
 
-        // ACTUALIZAR SOLO SI VIENE INFORMACIÓN
-        if (dto.getTipoResiduo() != null)
-            solicitud.setTipoResiduo(dto.getTipoResiduo());
+        // 5. Actualizar campos
+        if (dto.getTipoResiduo() != null) solicitud.setTipoResiduo(dto.getTipoResiduo());
+        if (dto.getCantidad() != null) solicitud.setCantidad(dto.getCantidad());
+        if (dto.getDescripcion() != null) solicitud.setDescripcion(dto.getDescripcion());
+        if (dto.getLocalidad() != null) solicitud.setLocalidad(dto.getLocalidad());
 
-        if (dto.getCantidad() != null)
-            solicitud.setCantidad(dto.getCantidad());
-
-        if (dto.getDescripcion() != null)
-            solicitud.setDescripcion(dto.getDescripcion());
-
-        if (dto.getLocalidad() != null)
-            solicitud.setLocalidad(dto.getLocalidad());
-
-        // GEOCODING
+        // 6. Geocodificación si cambia ubicación
         if (dto.getUbicacion() != null && !dto.getUbicacion().isBlank()) {
             solicitud.setUbicacion(dto.getUbicacion());
-
-            geocodingService.obtenerCoordenadas(dto.getUbicacion())
-                    .ifPresentOrElse(coords -> {
-                        solicitud.setLatitude(BigDecimal.valueOf(coords.latitud()));
-                        solicitud.setLongitude(BigDecimal.valueOf(coords.longitud()));
-                    }, () -> {
-                        throw new RuntimeException("No se pudieron obtener coordenadas");
-                    });
+            try {
+                var coords = geocodingService.obtenerCoordenadas(dto.getUbicacion())
+                        .orElseThrow(() -> new RuntimeException("No se pudieron obtener coordenadas"));
+                solicitud.setLatitude(BigDecimal.valueOf(coords.latitud()));
+                solicitud.setLongitude(BigDecimal.valueOf(coords.longitud()));
+            } catch (Exception e) {
+                logger.error("Error en geocodificación para ubicación {}: {}", dto.getUbicacion(), e.getMessage());
+                throw new RuntimeException("Error al geocodificar la dirección: " + e.getMessage());
+            }
         }
 
-        if (dto.getFechaProgramada() != null)
+        // 7. Actualizar fecha programada
+        if (dto.getFechaProgramada() != null) {
             solicitud.setFechaProgramada(dto.getFechaProgramada());
+        }
 
-        return entityToDTO(solicitudRepository.save(solicitud));
+        // 8. Si esta rechazada, la pasamos a pendiente
+        if (estadoActual == EstadoPeticion.Cancelada) {
+            solicitud.setEstadoPeticion(EstadoPeticion.Pendiente);
+            solicitud.setMotivoRechazo(null); 
+        }
+
+        // 9. Guardar
+        SolicitudRecoleccionEntity saved = solicitudRepository.save(solicitud);
+        return entityToDTO(saved);
+
+    } catch (Exception e) {
+        logger.error("Error actualizando solicitud {}: {}", id, e.getMessage(), e);
+        throw new RuntimeException("Error interno al actualizar la solicitud: " + e.getMessage(), e);
     }
+}
 
-    @Override
+
+
+@Override
     public SolicitudRecoleccionDTO cancelarSolicitud(Long solicitudId) {
 
         SolicitudRecoleccionEntity solicitud = solicitudRepository.findById(solicitudId)

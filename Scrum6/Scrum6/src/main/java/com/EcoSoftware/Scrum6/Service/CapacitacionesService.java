@@ -3,8 +3,6 @@ package com.EcoSoftware.Scrum6.Service;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.*;
 import com.EcoSoftware.Scrum6.Enums.EstadoCurso;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
@@ -54,6 +52,8 @@ public interface CapacitacionesService {
 
     List<ModuloDTO> listarModulosPorCapacitacion(Long capacitacionId);
 
+    String subirPdfModulo(MultipartFile file, Long moduloId) throws Exception;
+
     byte[] generarPlantillaModulosExcel();
 
     void cargarModulosDesdeExcel(Long capacitacionId, MultipartFile file);
@@ -79,6 +79,23 @@ public interface CapacitacionesService {
     List<ProgresoDTO> listarProgresosPorUsuario(Long usuarioId);
 
     List<ProgresoDTO> listarProgresosPorCurso(Long cursoId);
+
+    ProgresoDTO obtenerProgresoUsuarioPorCurso(Long usuarioId, Long cursoId);
+
+    // ===========================
+    // EVALUACIONES POR MÓDULO
+    // ===========================
+    EvaluacionDTO crearEvaluacion(EvaluacionDTO dto);
+
+    EvaluacionDTO actualizarEvaluacion(Long id, EvaluacionDTO dto);
+
+    void eliminarEvaluacion(Long id);
+
+    List<EvaluacionDTO> listarEvaluacionesPorModulo(Long moduloId);
+
+    IntentoEvaluacionDTO registrarIntentoEvaluacion(IntentoEvaluacionDTO dto);
+
+    List<IntentoEvaluacionDTO> listarIntentosPorEvaluacionYUsuario(Long evaluacionId, Long usuarioId);
 
     // ===========================
     // VALIDACIÓN DE CAPACITACIONES

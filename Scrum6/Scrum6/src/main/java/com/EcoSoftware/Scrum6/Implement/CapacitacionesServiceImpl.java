@@ -19,11 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.CapacitacionDTO;
+import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.EvaluacionDTO;
+import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.IntentoEvaluacionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.InscripcionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.ModuloDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.ProgresoDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.UploadResultDTO;
 import com.EcoSoftware.Scrum6.Entity.CapacitacionEntity;
+import com.EcoSoftware.Scrum6.Entity.EvaluacionEntity;
+import com.EcoSoftware.Scrum6.Entity.EvaluacionIntentoEntity;
 import com.EcoSoftware.Scrum6.Entity.InscripcionEntity;
 import com.EcoSoftware.Scrum6.Entity.ModuloEntity;
 import com.EcoSoftware.Scrum6.Entity.ProgresoEntity;
@@ -31,6 +35,8 @@ import com.EcoSoftware.Scrum6.Entity.UsuarioEntity;
 import com.EcoSoftware.Scrum6.Enums.EstadoCurso;
 import com.EcoSoftware.Scrum6.Exception.ValidacionCapacitacionException;
 import com.EcoSoftware.Scrum6.Repository.CapacitacionRepository;
+import com.EcoSoftware.Scrum6.Repository.EvaluacionIntentoRepository;
+import com.EcoSoftware.Scrum6.Repository.EvaluacionRepository;
 import com.EcoSoftware.Scrum6.Repository.InscripcionRepository;
 import com.EcoSoftware.Scrum6.Repository.ModuloRepository;
 import com.EcoSoftware.Scrum6.Repository.ProgresoRepository;
@@ -56,6 +62,12 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private EvaluacionRepository evaluacionRepository;
+
+    @Autowired
+    private EvaluacionIntentoRepository evaluacionIntentoRepository;
 
     @Autowired
     private com.EcoSoftware.Scrum6.Service.EmailService emailService;
@@ -382,7 +394,8 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
             throw new RuntimeException("Archivo no enviado");
         }
 
-        if (!file.getContentType().startsWith("image/")) {
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
             throw new RuntimeException("Archivo no es una imagen válida");
         }
 
@@ -410,11 +423,6 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
         capacitacionRepository.save(entidad);
         dto.setId(entidad.getId());
         return dto;
-    }
-
-    @Override
-    public void eliminarCapacitacion(Long id) {
-        capacitacionRepository.deleteById(id);
     }
 
     @Override
@@ -471,9 +479,14 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
     // ============================
     @Override
     public ModuloDTO crearModulo(ModuloDTO dto) {
+        if (dto.getCapacitacionId() == null) {
+            throw new RuntimeException("capacitacionId es obligatorio para crear módulo");
+        }
+
         ModuloEntity entidad = new ModuloEntity();
         entidad.setDescripcion(dto.getDescripcion());
         entidad.setDuracion(dto.getDuracion());
+        entidad.setArchivoPdfUrl(dto.getArchivoPdfUrl());
 
         CapacitacionEntity curso = capacitacionRepository.findById(dto.getCapacitacionId())
                 .orElseThrow(() -> new RuntimeException("Capacitación no encontrada"));
@@ -490,6 +503,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
                 .orElseThrow(() -> new RuntimeException("Módulo no encontrado"));
         entidad.setDescripcion(dto.getDescripcion());
         entidad.setDuracion(dto.getDuracion());
+        entidad.setArchivoPdfUrl(dto.getArchivoPdfUrl());
         moduloRepository.save(entidad);
         dto.setId(entidad.getId());
         return dto;
@@ -497,7 +511,11 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
 
     @Override
     public void eliminarModulo(Long id) {
-        moduloRepository.deleteById(id);
+        ModuloEntity modulo = moduloRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Módulo no encontrado"));
+
+        eliminarDependenciasModulo(modulo.getId());
+        moduloRepository.delete(modulo);
     }
 
     @Override
@@ -507,9 +525,35 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
             dto.setId(entidad.getId());
             dto.setDescripcion(entidad.getDescripcion());
             dto.setDuracion(entidad.getDuracion());
+            dto.setArchivoPdfUrl(entidad.getArchivoPdfUrl());
             dto.setCapacitacionId(entidad.getCapacitacion().getId());
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public String subirPdfModulo(MultipartFile file, Long moduloId) throws Exception {
+        ModuloEntity modulo = moduloRepository.findById(moduloId)
+                .orElseThrow(() -> new RuntimeException("Módulo no encontrado"));
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Archivo no enviado");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.equalsIgnoreCase("application/pdf")) {
+            throw new RuntimeException("Solo se permiten archivos PDF");
+        }
+
+        Long capacitacionId = modulo.getCapacitacion() != null ? modulo.getCapacitacion().getId() : null;
+        String folder = "capacitaciones/" + capacitacionId + "/modulos/" + moduloId;
+        String publicId = "material_pdf";
+
+        String url = cloudinaryService.upload(file, folder, publicId);
+        modulo.setArchivoPdfUrl(url);
+        moduloRepository.save(modulo);
+
+        return url;
     }
 
     @Override
@@ -561,6 +605,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
                 m.setDuracion(duracion);
                 m.setDescripcion(descripcion);
                 m.setCapacitacion(capacitacion);
+                m.setArchivoPdfUrl(null);
 
                 modulos.add(m);
             }
@@ -739,5 +784,189 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
             dto.setTiempoInvertido(entidad.getTiempoInvertido());
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public ProgresoDTO obtenerProgresoUsuarioPorCurso(Long usuarioId, Long cursoId) {
+        ProgresoEntity entidad = progresoRepository.findByCursoIdAndUsuario_IdUsuario(cursoId, usuarioId)
+                .orElseThrow(() -> new RuntimeException("Progreso no encontrado para el usuario y curso indicados"));
+        return mapProgreso(entidad);
+    }
+
+    @Override
+    public EvaluacionDTO crearEvaluacion(EvaluacionDTO dto) {
+        ModuloEntity modulo = moduloRepository.findById(dto.getModuloId())
+                .orElseThrow(() -> new RuntimeException("Módulo no encontrado"));
+
+        EvaluacionEntity entidad = new EvaluacionEntity();
+        entidad.setTitulo(dto.getTitulo());
+        entidad.setDescripcion(dto.getDescripcion());
+        Double puntajeMinimo = dto.getPuntajeMinimo();
+        entidad.setPuntajeMinimo(puntajeMinimo == null ? 60.0 : puntajeMinimo);
+        entidad.setActiva(dto.getActiva() == null ? Boolean.TRUE : dto.getActiva());
+        entidad.setModulo(modulo);
+
+        EvaluacionEntity saved = evaluacionRepository.save(entidad);
+        return mapEvaluacion(saved);
+    }
+
+    @Override
+    public EvaluacionDTO actualizarEvaluacion(Long id, EvaluacionDTO dto) {
+        EvaluacionEntity entidad = evaluacionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evaluación no encontrada"));
+
+        entidad.setTitulo(dto.getTitulo());
+        entidad.setDescripcion(dto.getDescripcion());
+        entidad.setPuntajeMinimo(dto.getPuntajeMinimo() == null ? entidad.getPuntajeMinimo() : dto.getPuntajeMinimo());
+        entidad.setActiva(dto.getActiva() == null ? entidad.getActiva() : dto.getActiva());
+
+        EvaluacionEntity saved = evaluacionRepository.save(entidad);
+        return mapEvaluacion(saved);
+    }
+
+    @Override
+    public void eliminarEvaluacion(Long id) {
+        EvaluacionEntity evaluacion = evaluacionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evaluación no encontrada"));
+
+        evaluacionIntentoRepository.deleteByEvaluacionId(evaluacion.getId());
+        evaluacionRepository.delete(evaluacion);
+    }
+
+    @Override
+    public List<EvaluacionDTO> listarEvaluacionesPorModulo(Long moduloId) {
+        return evaluacionRepository.findByModuloId(moduloId)
+                .stream()
+                .map(this::mapEvaluacion)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public IntentoEvaluacionDTO registrarIntentoEvaluacion(IntentoEvaluacionDTO dto) {
+        EvaluacionEntity evaluacion = evaluacionRepository.findById(dto.getEvaluacionId())
+                .orElseThrow(() -> new RuntimeException("Evaluación no encontrada"));
+
+        UsuarioEntity usuario = usuarioRepository.findById(dto.getUsuarioId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Double puntajeObtenidoInput = dto.getPuntajeObtenido();
+        Double puntajeMinimoInput = evaluacion.getPuntajeMinimo();
+        double puntajeObtenido = puntajeObtenidoInput == null ? 0.0 : puntajeObtenidoInput;
+        double puntajeMinimo = puntajeMinimoInput == null ? 60.0 : puntajeMinimoInput;
+        boolean aprobado = puntajeObtenido >= puntajeMinimo;
+
+        EvaluacionIntentoEntity intento = new EvaluacionIntentoEntity();
+        intento.setEvaluacion(evaluacion);
+        intento.setUsuario(usuario);
+        intento.setPuntajeObtenido(puntajeObtenido);
+        intento.setAprobado(aprobado);
+        intento.setFechaPresentacion(java.time.LocalDate.now());
+
+        EvaluacionIntentoEntity saved = evaluacionIntentoRepository.save(intento);
+
+        Long cursoId = evaluacion.getModulo().getCapacitacion().getId();
+        actualizarProgresoDesdeEvaluaciones(usuario.getIdUsuario(), cursoId);
+
+        return mapIntento(saved);
+    }
+
+    @Override
+    public List<IntentoEvaluacionDTO> listarIntentosPorEvaluacionYUsuario(Long evaluacionId, Long usuarioId) {
+        return evaluacionIntentoRepository.findByEvaluacionIdAndUsuario_IdUsuario(evaluacionId, usuarioId)
+                .stream()
+                .map(this::mapIntento)
+                .collect(Collectors.toList());
+    }
+
+    private void actualizarProgresoDesdeEvaluaciones(Long usuarioId, Long cursoId) {
+        long totalEvaluaciones = evaluacionRepository.countByModulo_Capacitacion_Id(cursoId);
+        long evaluacionesAprobadas = evaluacionIntentoRepository
+            .countDistinctByEvaluacion_Modulo_Capacitacion_IdAndUsuario_IdUsuarioAndAprobadoTrue(cursoId,
+                usuarioId);
+
+        ProgresoEntity progreso = progresoRepository.findByCursoIdAndUsuario_IdUsuario(cursoId, usuarioId)
+                .orElseGet(() -> {
+                    ProgresoEntity nuevo = new ProgresoEntity();
+                    UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                    CapacitacionEntity curso = capacitacionRepository.findById(cursoId)
+                            .orElseThrow(() -> new RuntimeException("Capacitación no encontrada"));
+                    nuevo.setUsuario(usuario);
+                    nuevo.setCurso(curso);
+                    nuevo.setTiempoInvertido("0");
+                    return nuevo;
+                });
+
+        progreso.setModulosCompletados(evaluacionesAprobadas + "/" + totalEvaluaciones);
+
+        double porcentaje = totalEvaluaciones == 0 ? 0.0 : (evaluacionesAprobadas * 100.0) / totalEvaluaciones;
+        progreso.setProgresoDelCurso(String.format(java.util.Locale.US, "%.2f%%", porcentaje));
+
+        progresoRepository.save(progreso);
+    }
+
+    @Override
+    public void eliminarCapacitacion(Long id) {
+        CapacitacionEntity capacitacion = capacitacionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Capacitación no encontrada"));
+
+        List<ModuloEntity> modulos = moduloRepository.findByCapacitacionId(id);
+        for (ModuloEntity modulo : modulos) {
+            eliminarDependenciasModulo(modulo.getId());
+        }
+
+        List<InscripcionEntity> inscripciones = inscripcionRepository.findByCursoId(id);
+        if (!inscripciones.isEmpty()) {
+            inscripcionRepository.deleteAll(inscripciones);
+        }
+
+        List<ProgresoEntity> progresos = progresoRepository.findByCursoId(id);
+        if (!progresos.isEmpty()) {
+            progresoRepository.deleteAll(progresos);
+        }
+
+        moduloRepository.deleteAll(modulos);
+        capacitacionRepository.delete(capacitacion);
+    }
+
+    private void eliminarDependenciasModulo(Long moduloId) {
+        List<EvaluacionEntity> evaluaciones = evaluacionRepository.findByModuloId(moduloId);
+        for (EvaluacionEntity evaluacion : evaluaciones) {
+            evaluacionIntentoRepository.deleteByEvaluacionId(evaluacion.getId());
+        }
+        evaluacionRepository.deleteByModuloId(moduloId);
+    }
+
+    private EvaluacionDTO mapEvaluacion(EvaluacionEntity entidad) {
+        EvaluacionDTO dto = new EvaluacionDTO();
+        dto.setId(entidad.getId());
+        dto.setTitulo(entidad.getTitulo());
+        dto.setDescripcion(entidad.getDescripcion());
+        dto.setPuntajeMinimo(entidad.getPuntajeMinimo());
+        dto.setActiva(entidad.getActiva());
+        dto.setModuloId(entidad.getModulo().getId());
+        return dto;
+    }
+
+    private IntentoEvaluacionDTO mapIntento(EvaluacionIntentoEntity entidad) {
+        IntentoEvaluacionDTO dto = new IntentoEvaluacionDTO();
+        dto.setId(entidad.getId());
+        dto.setEvaluacionId(entidad.getEvaluacion().getId());
+        dto.setUsuarioId(entidad.getUsuario().getIdUsuario());
+        dto.setPuntajeObtenido(entidad.getPuntajeObtenido());
+        dto.setAprobado(entidad.getAprobado());
+        dto.setFechaPresentacion(entidad.getFechaPresentacion());
+        return dto;
+    }
+
+    private ProgresoDTO mapProgreso(ProgresoEntity entidad) {
+        ProgresoDTO dto = new ProgresoDTO();
+        dto.setId(entidad.getId());
+        dto.setCursoId(entidad.getCurso().getId());
+        dto.setUsuarioId(entidad.getUsuario().getIdUsuario());
+        dto.setProgresoDelCurso(entidad.getProgresoDelCurso());
+        dto.setModulosCompletados(entidad.getModulosCompletados());
+        dto.setTiempoInvertido(entidad.getTiempoInvertido());
+        return dto;
     }
 }

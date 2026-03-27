@@ -29,7 +29,28 @@ public class CapacitacionesDTO {
         private Long id;
         private String duracion;
         private String descripcion;
+        private String archivoPdfUrl;
         private Long capacitacionId;
+    }
+
+    @Data
+    public static class EvaluacionDTO {
+        private Long id;
+        private String titulo;
+        private String descripcion;
+        private Double puntajeMinimo;
+        private Boolean activa;
+        private Long moduloId;
+    }
+
+    @Data
+    public static class IntentoEvaluacionDTO {
+        private Long id;
+        private Long evaluacionId;
+        private Long usuarioId;
+        private Double puntajeObtenido;
+        private Boolean aprobado;
+        private LocalDate fechaPresentacion;
     }
 
     @Data

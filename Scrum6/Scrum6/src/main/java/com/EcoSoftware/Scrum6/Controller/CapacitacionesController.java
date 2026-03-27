@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.CapacitacionDTO;
+import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.EvaluacionDTO;
+import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.IntentoEvaluacionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.InscripcionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.ModuloDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.ProgresoDTO;
@@ -128,6 +130,13 @@ public ResponseEntity<List<CapacitacionDTO>> obtenerMisCapacitaciones(@PathVaria
         return ResponseEntity.ok(capacitacionesService.crearModulo(dto));
     }
 
+    @PostMapping("/{capacitacionId}/modulos")
+    public ResponseEntity<ModuloDTO> crearModuloPorCapacitacion(@PathVariable Long capacitacionId,
+                                                                 @RequestBody ModuloDTO dto) {
+        dto.setCapacitacionId(capacitacionId);
+        return ResponseEntity.ok(capacitacionesService.crearModulo(dto));
+    }
+
     @PutMapping("/modulos/{id}")
     public ResponseEntity<ModuloDTO> actualizarModulo(@PathVariable Long id, @RequestBody ModuloDTO dto) {
         return ResponseEntity.ok(capacitacionesService.actualizarModulo(id, dto));
@@ -159,6 +168,53 @@ public ResponseEntity<List<CapacitacionDTO>> obtenerMisCapacitaciones(@PathVaria
             @RequestParam("file") MultipartFile file) {
         capacitacionesService.cargarModulosDesdeExcel(capacitacionId, file);
         return ResponseEntity.ok("Módulos cargados correctamente para la capacitación " + capacitacionId);
+    }
+
+    @PostMapping(value = "/modulos/{moduloId}/pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> subirPdfModulo(@PathVariable Long moduloId, @RequestParam("file") MultipartFile file) {
+        try {
+            String url = capacitacionesService.subirPdfModulo(file, moduloId);
+            return ResponseEntity.ok(Map.of("url", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/modulos/{moduloId}/evaluaciones")
+    public ResponseEntity<List<EvaluacionDTO>> listarEvaluacionesPorModulo(@PathVariable Long moduloId) {
+        return ResponseEntity.ok(capacitacionesService.listarEvaluacionesPorModulo(moduloId));
+    }
+
+    @PostMapping("/modulos/{moduloId}/evaluaciones")
+    public ResponseEntity<EvaluacionDTO> crearEvaluacion(@PathVariable Long moduloId, @RequestBody EvaluacionDTO dto) {
+        dto.setModuloId(moduloId);
+        return ResponseEntity.ok(capacitacionesService.crearEvaluacion(dto));
+    }
+
+    @PutMapping("/evaluaciones/{evaluacionId}")
+    public ResponseEntity<EvaluacionDTO> actualizarEvaluacion(@PathVariable Long evaluacionId,
+                                                              @RequestBody EvaluacionDTO dto) {
+        return ResponseEntity.ok(capacitacionesService.actualizarEvaluacion(evaluacionId, dto));
+    }
+
+    @DeleteMapping("/evaluaciones/{evaluacionId}")
+    public ResponseEntity<Void> eliminarEvaluacion(@PathVariable Long evaluacionId) {
+        capacitacionesService.eliminarEvaluacion(evaluacionId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/evaluaciones/{evaluacionId}/intentos")
+    public ResponseEntity<IntentoEvaluacionDTO> registrarIntentoEvaluacion(@PathVariable Long evaluacionId,
+                                                                            @RequestBody IntentoEvaluacionDTO dto) {
+        dto.setEvaluacionId(evaluacionId);
+        return ResponseEntity.ok(capacitacionesService.registrarIntentoEvaluacion(dto));
+    }
+
+    @GetMapping("/evaluaciones/{evaluacionId}/intentos/usuario/{usuarioId}")
+    public ResponseEntity<List<IntentoEvaluacionDTO>> listarIntentosPorEvaluacionYUsuario(
+            @PathVariable Long evaluacionId,
+            @PathVariable Long usuarioId) {
+        return ResponseEntity.ok(capacitacionesService.listarIntentosPorEvaluacionYUsuario(evaluacionId, usuarioId));
     }
 
     // ========== INSCRIPCIONES ==========
@@ -218,5 +274,11 @@ public ResponseEntity<?> inscribirse(
     @GetMapping("/progreso/curso/{cursoId}")
     public ResponseEntity<List<ProgresoDTO>> listarProgresosPorCurso(@PathVariable Long cursoId) {
         return ResponseEntity.ok(capacitacionesService.listarProgresosPorCurso(cursoId));
+    }
+
+    @GetMapping("/progreso/usuario/{usuarioId}/curso/{cursoId}")
+    public ResponseEntity<ProgresoDTO> obtenerProgresoUsuarioPorCurso(@PathVariable Long usuarioId,
+                                                                       @PathVariable Long cursoId) {
+        return ResponseEntity.ok(capacitacionesService.obtenerProgresoUsuarioPorCurso(usuarioId, cursoId));
     }
 }

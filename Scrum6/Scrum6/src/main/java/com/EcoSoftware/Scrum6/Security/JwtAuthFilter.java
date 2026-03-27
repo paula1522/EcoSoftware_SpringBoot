@@ -38,13 +38,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         System.out.println("Path: " + path);
         System.out.println("Method: " + method);
 
-        // Rutas públicas COMPLETAS
+        // Rutas públicas
+        boolean esGetPublicoCapacitaciones = path.startsWith("/api/capacitaciones")
+            && "GET".equalsIgnoreCase(method);
+        boolean esGetPublicoNoticias = path.startsWith("/api/noticias")
+            && "GET".equalsIgnoreCase(method);
+
         if (path.equals("/api/auth/login") ||
                 (path.equals("/api/personas/registro") && "POST".equalsIgnoreCase(method)) ||
                 (path.equals("/api/personas") && "GET".equalsIgnoreCase(method)) ||
                 path.equals("/api/personas/test-public") ||
                 path.equals("/api/personas/test-registro") || (path.equals("/api/roles")) ||
-                (path.equals("/api/roles/crear")) || (path.equals("/api/noticias")) || (path.equals("/api/capacitaciones"))) {
+            (path.equals("/api/roles/crear")) || esGetPublicoNoticias || esGetPublicoCapacitaciones) {
             System.out.println("Ruta pública - permitiendo acceso");
             filterChain.doFilter(request, response);
             return;

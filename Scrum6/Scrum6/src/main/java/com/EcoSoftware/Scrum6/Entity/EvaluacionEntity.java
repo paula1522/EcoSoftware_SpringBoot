@@ -12,21 +12,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "modulo")
+@Table(name = "evaluacion")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ModuloEntity {
+public class EvaluacionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String duracion;
+    private String titulo;
     private String descripcion;
-    private String archivoPdfUrl;
+    private Double puntajeMinimo;
+    private Boolean activa;
 
     @ManyToOne
-    @JoinColumn(name = "capacitacion_id")
-    private CapacitacionEntity capacitacion;
+    @JoinColumn(name = "modulo_id")
+    private ModuloEntity modulo;
 }

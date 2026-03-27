@@ -497,6 +497,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
         entidad.setDescripcion(dto.getDescripcion());
         entidad.setDuracion(dto.getDuracion());
         entidad.setArchivoPdfUrl(dto.getArchivoPdfUrl());
+        entidad.setEvaluacion(dto.getEvaluacion());
 
         CapacitacionEntity curso = capacitacionRepository.findById(dto.getCapacitacionId())
                 .orElseThrow(() -> new RuntimeException("Capacitación no encontrada"));
@@ -514,6 +515,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
         entidad.setDescripcion(dto.getDescripcion());
         entidad.setDuracion(dto.getDuracion());
         entidad.setArchivoPdfUrl(dto.getArchivoPdfUrl());
+        entidad.setEvaluacion(dto.getEvaluacion());
         moduloRepository.save(entidad);
         dto.setId(entidad.getId());
         return dto;
@@ -536,6 +538,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
             dto.setDescripcion(entidad.getDescripcion());
             dto.setDuracion(entidad.getDuracion());
             dto.setArchivoPdfUrl(entidad.getArchivoPdfUrl());
+            dto.setEvaluacion(entidad.getEvaluacion());
             dto.setCapacitacionId(entidad.getCapacitacion().getId());
             return dto;
         }).collect(Collectors.toList());
@@ -617,6 +620,7 @@ public class CapacitacionesServiceImpl implements CapacitacionesService {
                 m.setDescripcion(descripcion);
                 m.setCapacitacion(capacitacion);
                 m.setArchivoPdfUrl(null);
+                m.setEvaluacion(null);
 
                 modulos.add(m);
             }

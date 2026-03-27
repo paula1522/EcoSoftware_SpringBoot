@@ -79,5 +79,9 @@ public class UsuarioDTO {
     private LocalDateTime fechaCreacion;
 
     private EstadoRegistro estadoRegistro;
+
+    private String tokenRecuperacion;
+    private LocalDateTime fechaToken;
+
 }
 

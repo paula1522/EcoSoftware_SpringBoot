@@ -295,5 +295,22 @@ public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestParam bool
 
         return ResponseEntity.ok("Contraseña actualizada correctamente");
     }
+
+    @PostMapping("/recuperar")
+    public ResponseEntity<?> recuperar(@RequestBody Map<String, String> body) {
+        usuarioService.enviarCorreoRecuperacion(body.get("correo"));
+        return ResponseEntity.ok("Correo enviado");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+
+        usuarioService.resetearContrasena(
+                body.get("token"),
+                body.get("nueva")
+        );
+
+        return ResponseEntity.ok("Contraseña restablecida");
+    }
 }
 

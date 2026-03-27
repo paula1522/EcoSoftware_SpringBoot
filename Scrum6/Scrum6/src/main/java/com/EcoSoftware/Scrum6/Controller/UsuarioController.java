@@ -208,11 +208,12 @@ public ResponseEntity<?> subirDocumento(
     public ResponseEntity<String> eliminacionPorEstado(@PathVariable Long id){
         try{
             usuarioService.eliminacionPorEstado(id);
-            return ResponseEntity.ok("Usuario eliminado correctamente");
+            return ResponseEntity.ok("Usuario actualizado correctamente");
         }catch (Exception e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
 
     @PutMapping("/estado/{id}")
 public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestParam boolean estado) {

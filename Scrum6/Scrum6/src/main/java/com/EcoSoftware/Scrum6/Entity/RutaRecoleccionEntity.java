@@ -27,21 +27,16 @@ public class RutaRecoleccionEntity {
     private Double distanciaTotal;
     private Double tiempoEstimado;
 
-    @Column(length = 2000)
+@Column(columnDefinition = "TEXT")
     private String geometriaRuta; // polyline u otro formato
 
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 
-    // =====================================
-    // RELACIÓN CON RECOLECTOR
-    // =====================================
     @ManyToOne
     @JoinColumn(name = "recolector_id", nullable = false)
     private UsuarioEntity recolector;
 
-    // =====================================
-    // RELACIÓN CON RECOLECCIONES
-    // =====================================
-    @OneToMany(mappedBy = "ruta", cascade = CascadeType.ALL)
+    // Relación con recolecciones: sin cascade REMOVE para evitar borrados accidentales
+    @OneToMany(mappedBy = "ruta")
     private List<RecoleccionEntity> recolecciones;
 }

@@ -2,61 +2,44 @@ package com.EcoSoftware.Scrum6.Entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
-
 import org.hibernate.annotations.CreationTimestamp;
-
 import com.EcoSoftware.Scrum6.Enums.EstadoPeticion;
 import com.EcoSoftware.Scrum6.Enums.Localidad;
 import com.EcoSoftware.Scrum6.Enums.TipoResiduo;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "solicitud_recoleccion")
+@Getter
+@Setter
+@NoArgsConstructor
 public class SolicitudRecoleccionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idSolicitud;
 
-    // Usuario ciudadano que crea la solicitud
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private UsuarioEntity usuario;
 
-    // Usuario que acepta la solicitud (reciclador o empresa)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "aceptada_por_id")
     private UsuarioEntity aceptadaPor;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_residuo", nullable = false, length = 20)
-    @NotNull(message = "El tipo de residuo es obligatorio")
+    @NotNull
     private TipoResiduo tipoResiduo;
 
     @Column(nullable = false, length = 100)
-    @NotNull(message = "La cantidad es obligatoria")
+    @NotNull
     private String cantidad;
 
     @Enumerated(EnumType.STRING)
@@ -64,27 +47,26 @@ public class SolicitudRecoleccionEntity {
     private EstadoPeticion estadoPeticion = EstadoPeticion.Pendiente;
 
     @Column(columnDefinition = "TEXT")
-    @NotNull(message = "La descripción es obligatoria")
+    @NotNull
     private String descripcion;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "localidad", nullable = false)
-    @NotNull(message = "La localidad es obligatoria")
+    @Column(nullable = false)
+    @NotNull
     private Localidad localidad;
 
     @Column(nullable = false, length = 255)
-    @NotNull(message = "La ubicación es obligatoria")
+    @NotNull
     private String ubicacion;
 
-    @Column(nullable = true, precision = 10, scale = 7)
-private BigDecimal latitude;
+    @Column(precision = 10, scale = 7)
+    private BigDecimal latitude;
 
-@Column(nullable = true, precision = 10, scale = 7)
-private BigDecimal longitude;
+    @Column(precision = 10, scale = 7)
+    private BigDecimal longitude;
 
-
-    @Column(name = "evidencia", nullable = false, length = 500)
-    @NotNull(message = "La evidencia es obligatoria")
+    @Column(nullable = false, length = 500)
+    @NotNull
     private String evidencia;
 
     @CreationTimestamp
@@ -92,17 +74,26 @@ private BigDecimal longitude;
     private OffsetDateTime fechaCreacionSolicitud;
 
     @Column(name = "fecha_programada", nullable = false)
-    @NotNull(message = "La fecha programada es obligatoria")
-    @FutureOrPresent(message = "La fecha debe ser hoy o futura")
+    @NotNull
+    @FutureOrPresent
     private LocalDateTime fechaProgramada;
 
-   
-    // Relación con la recolección generada (si llega a aceptarse)
-    @OneToOne(mappedBy = "solicitud", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "solicitud", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private RecoleccionEntity recoleccion;
-    //columna motivo rechazo para el estado rechazado
+
     @Column(name = "motivo_rechazo")
     private String motivoRechazo;
 
+    // equals/hashCode basado en idSolicitud
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof SolicitudRecoleccionEntity)) return false;
+        return idSolicitud != null && idSolicitud.equals(((SolicitudRecoleccionEntity) o).idSolicitud);
+    }
 
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

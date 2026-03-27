@@ -28,137 +28,90 @@ import com.EcoSoftware.Scrum6.Service.SolicitudRecoleccionService;
 import com.itextpdf.text.DocumentException;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/solicitudes")
 public class SolicitudRecoleccionController {
 
-    @Autowired
-    private SolicitudRecoleccionService solicitudService;
+    private final SolicitudRecoleccionService solicitudService;
 
     public SolicitudRecoleccionController(SolicitudRecoleccionService solicitudService) {
         this.solicitudService = solicitudService;
     }
 
-    // ========================================================
-    // CREAR SOLICITUD - ID del usuario se obtiene del token
-    // ========================================================
     @PostMapping
-    public ResponseEntity<SolicitudRecoleccionDTO> crearSolicitud(@RequestBody SolicitudRecoleccionDTO dto) {
-
+    public ResponseEntity<SolicitudRecoleccionDTO> crearSolicitud(@Valid @RequestBody SolicitudRecoleccionDTO dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String correoUsuario = auth.getName();
-
         return ResponseEntity.ok(solicitudService.crearSolicitud(dto, correoUsuario));
     }
 
-    // ========================================================
-    // Subir Evidencia
-    // ========================================================
+    // Subir evidencia
     @PostMapping(value = "/{id}/evidencia", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> subirEvidencia(
-            @PathVariable Long id,
-            @RequestParam("file") MultipartFile file) {
-
+    public ResponseEntity<?> subirEvidencia(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
         try {
             return ResponseEntity.ok(solicitudService.subirEvidencia(file, id));
         } catch (IOException e) {
-            return ResponseEntity.status(500).body("Error al subir la evidencia");
+            return ResponseEntity.status(500).body("Error al subir la evidencia: " + e.getMessage());
         }
     }
 
-    // ========================================================
-    // OBTENER SOLICITUD POR ID
-    // ========================================================
     @GetMapping("/{id}")
     public ResponseEntity<SolicitudRecoleccionDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(solicitudService.obtenerPorId(id));
     }
 
-    // ========================================================
-    // LISTAR TODAS LAS SOLICITUDES (ADMIN)
-    // ========================================================
     @GetMapping
     public ResponseEntity<List<SolicitudRecoleccionDTO>> listarTodas() {
         return ResponseEntity.ok(solicitudService.listarTodas());
     }
 
-    @GetMapping("/idUsuario/{id}")
-    public ResponseEntity<List<SolicitudRecoleccionDTO>> listarPorIdUsuario(@PathVariable Long id) {
-        return ResponseEntity.ok(solicitudService.listarPorUsuario(id));
-    }
-
-    // ========================================================
-    // LISTAR SOLICITUDES POR ESTADO
-    // ========================================================
-    @GetMapping("/estado/{estado}")
-    public ResponseEntity<List<SolicitudRecoleccionDTO>> listarPorEstado(@PathVariable EstadoPeticion estado) {
-        return ResponseEntity.ok(solicitudService.listarPorEstado(estado));
-    }
-
-    // ========================================================
-    // LISTAR SOLICITUDES POR USUARIO
-    // ========================================================
+    // UNIFICADO: solo /usuario/{id}
     @GetMapping("/usuario/{id}")
     public ResponseEntity<List<SolicitudRecoleccionDTO>> listarPorUsuario(@PathVariable Long id) {
         return ResponseEntity.ok(solicitudService.listarPorUsuario(id));
     }
 
-    // ========================================================
-    // LISTAR SOLICITUDES POR USUARIO Y ESTADO
-    // ========================================================
+    @GetMapping("/estado/{estado}")
+    public ResponseEntity<List<SolicitudRecoleccionDTO>> listarPorEstado(@PathVariable EstadoPeticion estado) {
+        return ResponseEntity.ok(solicitudService.listarPorEstado(estado));
+    }
+
     @GetMapping("/usuario/{id}/estado/{estado}")
     public ResponseEntity<List<SolicitudRecoleccionDTO>> listarPorUsuarioYEstado(
-            @PathVariable Long id,
-            @PathVariable EstadoPeticion estado) {
-
+            @PathVariable Long id, @PathVariable EstadoPeticion estado) {
         return ResponseEntity.ok(solicitudService.listarPorUsuarioYEstado(id, estado));
     }
 
-    // ========================================================
-    // ACEPTAR SOLICITUD
-    // ========================================================
     @PostMapping("/{id}/aceptar")
     public ResponseEntity<SolicitudRecoleccionDTO> aceptarSolicitud(@PathVariable Long id) {
         return ResponseEntity.ok(solicitudService.aceptarSolicitud(id));
     }
 
-    // ========================================================
-    // RECHAZAR SOLICITUD
-    // ========================================================
     @PostMapping("/{id}/rechazar")
     public ResponseEntity<SolicitudRecoleccionDTO> rechazarSolicitud(
-            @PathVariable Long id,
-            @RequestParam(required = false, defaultValue = "") String motivo) {
-
+            @PathVariable Long id, @RequestParam(required = false) String motivo) {
         return ResponseEntity.ok(solicitudService.rechazarSolicitud(id, motivo));
     }
 
     @PostMapping("/{id}/cancelar")
-public ResponseEntity<SolicitudRecoleccionDTO> cancelarSolicitud(@PathVariable Long id) {
-    return ResponseEntity.ok(solicitudService.cancelarSolicitud(id));
-}
-    
-
-    // ========================================================
-    // ACTUALIZAR SOLICITUD
-    // ========================================================
-    @PutMapping("/{id}")
-    public ResponseEntity<SolicitudRecoleccionDTO> actualizarSolicitud(
-            @PathVariable Long id,
-            @RequestBody SolicitudRecoleccionDTO dto) {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String correoUsuario = auth.getName();
-
-        dto.setIdSolicitud(id);
-
-        return ResponseEntity.ok(solicitudService.actualizarSolicitud(id,dto, correoUsuario));
+    public ResponseEntity<SolicitudRecoleccionDTO> cancelarSolicitud(@PathVariable Long id) {
+        return ResponseEntity.ok(solicitudService.cancelarSolicitud(id));
     }
 
-    // ========================================================
-    // EXPORTAR A EXCEL
-    // ========================================================
+    @PutMapping("/{id}")
+    public ResponseEntity<SolicitudRecoleccionDTO> actualizarSolicitud(
+            @PathVariable Long id, @Valid @RequestBody SolicitudRecoleccionDTO dto) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String correoUsuario = auth.getName();
+        dto.setIdSolicitud(id);
+        return ResponseEntity.ok(solicitudService.actualizarSolicitud(id, dto, correoUsuario));
+    }
+
+    
+
+    // ========== REPORTES ==========
     @GetMapping("/export/excel")
     public void exportToExcel(
             @RequestParam(required = false) String estado,
@@ -178,9 +131,6 @@ public ResponseEntity<SolicitudRecoleccionDTO> cancelarSolicitud(@PathVariable L
         solicitudService.generarReporteExcel(estadoEnum, localidadEnum, inicio, fin, response.getOutputStream());
     }
 
-    // ========================================================
-    // EXPORTAR A PDF
-    // ========================================================
     @GetMapping("/export/pdf")
     public void exportToPDF(
             @RequestParam(required = false) String estado,
@@ -199,7 +149,6 @@ public ResponseEntity<SolicitudRecoleccionDTO> cancelarSolicitud(@PathVariable L
 
         solicitudService.generarReportePDF(estadoEnum, localidadEnum, inicio, fin, response.getOutputStream());
     }
-
     // ========================================================
     // MÉTODOS AUXILIARES
     // ========================================================

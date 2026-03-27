@@ -714,4 +714,28 @@ public void cambiarEstado(Long idUsuario) {
         return usuarioRepository.contarUsuariosPorLocalidad();
     }
 
+
+
+    @Override
+    public void cambiarContrasena(Long idUsuario, String actual, String nueva) {
+
+        UsuarioEntity usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // 🔥 Validar contraseña actual
+        if (!passwordEncoder.matches(actual, usuario.getContrasena())) {
+            throw new RuntimeException("La contraseña actual es incorrecta");
+        }
+
+        // 🔥 Validar política de contraseña
+        PasswordPolicyUtil.validar(nueva);
+
+        // 🔥 Encriptar nueva contraseña
+        usuario.setContrasena(passwordEncoder.encode(nueva));
+        usuario.setFechaActualizacion(LocalDateTime.now());
+
+        usuarioRepository.save(usuario);
+    }
+
+
 }

@@ -72,4 +72,5 @@ public interface UsuarioService {
     void exportUsuariosToPDF(String nombre, String correo, String documento, OutputStream os)
             throws IOException, DocumentException;
 
+    void cambiarContrasena(Long idUsuario, String actual, String nueva);
 }

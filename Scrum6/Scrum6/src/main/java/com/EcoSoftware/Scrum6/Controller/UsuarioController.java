@@ -281,5 +281,19 @@ public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestParam bool
         return ResponseEntity.ok(datos);
     }
 
+
+    @PutMapping("/cambiar-password/{id}")
+    public ResponseEntity<?> cambiarPassword(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+
+        usuarioService.cambiarContrasena(
+                id,
+                body.get("actual"),
+                body.get("nueva")
+        );
+
+        return ResponseEntity.ok("Contraseña actualizada correctamente");
+    }
 }
 

@@ -1,5 +1,7 @@
 package com.EcoSoftware.Scrum6.Entity;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,21 +14,25 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "modulo")
+@Table(name = "evaluacion_intento")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ModuloEntity {
+public class EvaluacionIntentoEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String duracion;
-    private String descripcion;
-    private String archivoPdfUrl;
+    private Double puntajeObtenido;
+    private Boolean aprobado;
+    private LocalDate fechaPresentacion;
 
     @ManyToOne
-    @JoinColumn(name = "capacitacion_id")
-    private CapacitacionEntity capacitacion;
+    @JoinColumn(name = "evaluacion_id")
+    private EvaluacionEntity evaluacion;
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private UsuarioEntity usuario;
 }

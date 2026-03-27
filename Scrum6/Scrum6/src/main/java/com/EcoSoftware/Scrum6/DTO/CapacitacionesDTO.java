@@ -9,6 +9,7 @@ public class CapacitacionesDTO {
 
     @Data
     public static class CapacitacionDTO {
+
         private Long id;
         private String nombre;
         private String descripcion;
@@ -16,24 +17,48 @@ public class CapacitacionesDTO {
         private String duracion;
         private String imagen;
         /**
-         * Campo usado por la validación desde Excel:
-         * - "ERROR: nombre repetido" -> bloqueante
-         * - "WARNING: descripción repetida" -> no bloqueante
-         * - "WARNING: nombre parecido a existente" -> no bloqueante
+         * Campo usado por la validación desde Excel: - "ERROR: nombre repetido"
+         * -> bloqueante - "WARNING: descripción repetida" -> no bloqueante -
+         * "WARNING: nombre parecido a existente" -> no bloqueante
          */
         private String observacion;
     }
 
     @Data
     public static class ModuloDTO {
+
         private Long id;
         private String duracion;
         private String descripcion;
+        private String archivoPdfUrl;
         private Long capacitacionId;
     }
 
     @Data
+    public static class EvaluacionDTO {
+
+        private Long id;
+        private String titulo;
+        private String descripcion;
+        private Double puntajeMinimo;
+        private Boolean activa;
+        private Long moduloId;
+    }
+
+    @Data
+    public static class IntentoEvaluacionDTO {
+
+        private Long id;
+        private Long evaluacionId;
+        private Long usuarioId;
+        private Double puntajeObtenido;
+        private Boolean aprobado;
+        private LocalDate fechaPresentacion;
+    }
+
+    @Data
     public static class InscripcionDTO {
+
         private Long id;
         private LocalDate fechaDeInscripcion;
         private EstadoCurso estadoCurso;
@@ -43,6 +68,7 @@ public class CapacitacionesDTO {
 
     @Data
     public static class ProgresoDTO {
+
         private Long id;
         private String progresoDelCurso;
         private String modulosCompletados;
@@ -53,6 +79,7 @@ public class CapacitacionesDTO {
 
     @Data
     public static class UploadResultDTO {
+
         private int totalFilasLeidas;
         private int insertadas;
         private int rechazadas;

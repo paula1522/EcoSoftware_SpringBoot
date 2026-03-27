@@ -1,5 +1,6 @@
 package com.EcoSoftware.Scrum6.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,7 +17,11 @@ import com.EcoSoftware.Scrum6.Enums.TipoResiduo;
 @Repository
 public interface SolicitudRecoleccionRepository extends JpaRepository<SolicitudRecoleccionEntity, Long> {
 
-
+ @Query("SELECT s FROM SolicitudRecoleccionEntity s " +
+           "LEFT JOIN FETCH s.usuario " +
+           "LEFT JOIN FETCH s.aceptadaPor " +
+           "LEFT JOIN FETCH s.recoleccion")
+    List<SolicitudRecoleccionEntity> findAllWithRelations();
     // Buscar solicitudes por estado
     List<SolicitudRecoleccionEntity> findByEstadoPeticion(EstadoPeticion estadoPeticion);
 
@@ -39,6 +44,15 @@ public interface SolicitudRecoleccionRepository extends JpaRepository<SolicitudR
     List<SolicitudRecoleccionEntity> findByLocalidadAndTipoResiduo(Localidad localidad, TipoResiduo tipoResiduo);
     List<SolicitudRecoleccionEntity> findByLocalidadAndEstadoPeticion(Localidad localidad, EstadoPeticion estadoPeticion);
 
+  @Query("SELECT s FROM SolicitudRecoleccionEntity s WHERE " +
+       "(:estado IS NULL OR s.estadoPeticion = :estado) AND " +
+       "(:localidad IS NULL OR s.localidad = :localidad) AND " +
+       "(:fechaInicio IS NULL OR s.fechaProgramada >= :fechaInicio) AND " +
+       "(:fechaFin IS NULL OR s.fechaProgramada <= :fechaFin)")
+List<SolicitudRecoleccionEntity> findByFiltros(@Param("estado") EstadoPeticion estado,
+                                               @Param("localidad") Localidad localidad,
+                                               @Param("fechaInicio") LocalDateTime fechaInicio,
+                                               @Param("fechaFin") LocalDateTime fechaFin);
     // crear graficos 
 
     // Consulta agrupada por motivo de rechazo

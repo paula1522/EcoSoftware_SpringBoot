@@ -44,6 +44,8 @@ public class SecurityConfig {
                 "/api/personas",
                 "/api/personas/test-public",
                 "/api/personas/test-registro",
+                "/api/personas/reset-password",
+                "/api/personas/recuperar",
                 "/error")
         .permitAll()
 

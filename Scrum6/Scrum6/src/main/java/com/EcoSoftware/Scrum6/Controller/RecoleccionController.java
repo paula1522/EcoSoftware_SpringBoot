@@ -55,10 +55,17 @@ public class RecoleccionController {
     // LISTAR RECOLECCIONES DEL RECOLECTOR AUTENTICADO
     // ===========================
     @GetMapping("/mis-recolecciones")
-    public ResponseEntity<List<RecoleccionDTO>> listarMisRecolecciones() {
-        UsuarioEntity recolector = obtenerUsuarioAutenticado();
-        return ResponseEntity.ok(recoleccionService.listarPorRecolector(recolector.getIdUsuario()));
+public ResponseEntity<List<RecoleccionDTO>> listarMisRecolecciones(
+        @RequestParam(required = false) EstadoRecoleccion estado) {
+    UsuarioEntity recolector = obtenerUsuarioAutenticado();
+    List<RecoleccionDTO> recolecciones;
+    if (estado != null) {
+        recolecciones = recoleccionService.listarPorRecolectorYEstado(recolector.getIdUsuario(), estado);
+    } else {
+        recolecciones = recoleccionService.listarPorRecolector(recolector.getIdUsuario());
     }
+    return ResponseEntity.ok(recolecciones);
+}
 
     // ===========================
     // LISTAR RECOLECCIONES EN PROCESO SIN RUTA

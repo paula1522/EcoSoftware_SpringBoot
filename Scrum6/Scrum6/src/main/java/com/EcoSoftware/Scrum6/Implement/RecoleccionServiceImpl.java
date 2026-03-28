@@ -101,6 +101,14 @@ public List<RecoleccionDTO> listarPorSolicitante(Long usuarioId) {
                 .toList();
     }
 
+    @Override
+public List<RecoleccionDTO> listarPorRecolectorYEstado(Long recolectorId, EstadoRecoleccion estado) {
+    return recoleccionRepository.findByRecolector_IdUsuarioAndEstado(recolectorId, estado)
+            .stream()
+            .map(this::convertirADTO)
+            .toList();
+}
+
     
 
     // ========================================================
@@ -245,6 +253,11 @@ public RecoleccionDTO actualizarRecoleccion(Long id, RecoleccionDTO dto) {
         dto.setObservaciones(entity.getObservaciones());
         dto.setEvidencia(entity.getEvidencia());
         dto.setFechaCreacionRecoleccion(entity.getFechaCreacionRecoleccion());
+        if (entity.getSolicitud() != null) {
+        dto.setDireccion(entity.getSolicitud().getUbicacion());
+        dto.setLatitud(entity.getSolicitud().getLatitude());
+        dto.setLongitud(entity.getSolicitud().getLongitude());
+    }
 
         return dto;
     }

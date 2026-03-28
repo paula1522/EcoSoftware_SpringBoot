@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.*;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.CapacitacionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.EvaluacionDTO;
 import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.InscripcionDTO;
@@ -15,7 +14,7 @@ import com.EcoSoftware.Scrum6.DTO.CapacitacionesDTO.UploadResultDTO;
 import com.EcoSoftware.Scrum6.Enums.EstadoCurso;
 
 /**
- * Interfaz de servicios para el módulo de capacitaciones
+ * Interfaz de servicios para el modulo de capacitaciones.
  */
 public interface CapacitacionesService {
 
@@ -46,11 +45,10 @@ public interface CapacitacionesService {
     List<CapacitacionDTO> validarCapacitacionesExcel(MultipartFile file);
 
     // ===========================
-    // MÓDULOS
+    // MODULOS
     // ===========================
     ModuloDTO crearModulo(ModuloDTO dto);
 
-    //String subirMaterial(ModuloDTO dto, MultipartFile file, String tipoMaterial) throws Exception;
     ModuloDTO actualizarModulo(Long id, ModuloDTO dto);
 
     void eliminarModulo(Long id);
@@ -88,7 +86,7 @@ public interface CapacitacionesService {
     ProgresoDTO obtenerProgresoUsuarioPorCurso(Long usuarioId, Long cursoId);
 
     // ===========================
-    // EVALUACIONES POR MÓDULO
+    // EVALUACIONES POR MODULO
     // ===========================
     EvaluacionDTO crearEvaluacion(EvaluacionDTO dto);
 
@@ -103,7 +101,7 @@ public interface CapacitacionesService {
     List<IntentoEvaluacionDTO> listarIntentosPorEvaluacionYUsuario(Long evaluacionId, Long usuarioId);
 
     // ===========================
-    // VALIDACIÓN DE CAPACITACIONES
+    // VALIDACION DE CAPACITACIONES
     // ===========================
     boolean existeCapacitacionPorNombre(String nombre);
 

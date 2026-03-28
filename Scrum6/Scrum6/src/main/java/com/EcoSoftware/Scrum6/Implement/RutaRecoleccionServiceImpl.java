@@ -127,16 +127,24 @@ public class RutaRecoleccionServiceImpl implements RutaRecoleccionService {
     // INICIAR RUTA
     // ===============================
     @Override
-    @Transactional
-    public RutaRecoleccionDTO iniciarRuta(Long id) {
-        RutaRecoleccionEntity ruta = rutaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
-        if (ruta.getEstado() != EstadoRuta.PLANIFICADA) {
-            throw new IllegalStateException("Solo se puede iniciar una ruta en estado PLANIFICADA");
-        }
-        ruta.setEstado(EstadoRuta.EN_PROGRESO);
-        return convertirADTO(rutaRepository.save(ruta));
+@Transactional
+public RutaRecoleccionDTO iniciarRuta(Long id) {
+    RutaRecoleccionEntity ruta = rutaRepository.findByIdWithRelations(id)
+            .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
+    if (ruta.getEstado() != EstadoRuta.PLANIFICADA) {
+        throw new IllegalStateException("Solo se puede iniciar una ruta en estado PLANIFICADA");
     }
+    ruta.setEstado(EstadoRuta.EN_PROGRESO);
+    
+    // Cambiar el estado de todas las recolecciones de la ruta a EN_PROGRESO
+    for (RecoleccionEntity rec : ruta.getRecolecciones()) {
+        if (rec.getEstado() == EstadoRecoleccion.Pendiente) {
+            rec.setEstado(EstadoRecoleccion.En_Progreso);
+        }
+    }
+    
+    return convertirADTO(rutaRepository.save(ruta));
+}
 
     // ===============================
     // FINALIZAR RUTA
@@ -144,8 +152,8 @@ public class RutaRecoleccionServiceImpl implements RutaRecoleccionService {
     @Override
     @Transactional
     public RutaRecoleccionDTO finalizarRuta(Long id) {
-        RutaRecoleccionEntity ruta = rutaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
+        RutaRecoleccionEntity ruta = rutaRepository.findByIdWithRelations(id)
+            .orElseThrow(() -> new EntityNotFoundException("Ruta no encontrada"));
         if (ruta.getEstado() != EstadoRuta.EN_PROGRESO) {
             throw new IllegalStateException("Solo se puede finalizar una ruta en progreso");
         }

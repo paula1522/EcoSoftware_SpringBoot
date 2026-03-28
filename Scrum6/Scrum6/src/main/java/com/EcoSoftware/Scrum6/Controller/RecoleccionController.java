@@ -55,10 +55,17 @@ public class RecoleccionController {
     // LISTAR RECOLECCIONES DEL RECOLECTOR AUTENTICADO
     // ===========================
     @GetMapping("/mis-recolecciones")
-    public ResponseEntity<List<RecoleccionDTO>> listarMisRecolecciones() {
-        UsuarioEntity recolector = obtenerUsuarioAutenticado();
-        return ResponseEntity.ok(recoleccionService.listarPorRecolector(recolector.getIdUsuario()));
+public ResponseEntity<List<RecoleccionDTO>> listarMisRecolecciones(
+        @RequestParam(required = false) EstadoRecoleccion estado) {
+    UsuarioEntity recolector = obtenerUsuarioAutenticado();
+    List<RecoleccionDTO> recolecciones;
+    if (estado != null) {
+        recolecciones = recoleccionService.listarPorRecolectorYEstado(recolector.getIdUsuario(), estado);
+    } else {
+        recolecciones = recoleccionService.listarPorRecolector(recolector.getIdUsuario());
     }
+    return ResponseEntity.ok(recolecciones);
+}
 
     // ===========================
     // LISTAR RECOLECCIONES EN PROCESO SIN RUTA
@@ -84,6 +91,25 @@ public class RecoleccionController {
     public ResponseEntity<List<RecoleccionDTO>> listarPorRuta(@PathVariable Long id) {
         return ResponseEntity.ok(recoleccionService.listarPorRuta(id));
     }
+
+    // ===========================
+// LISTAR RECOLECCIONES DEL CIUDADANO AUTENTICADO (basado en sus solicitudes)
+// ===========================
+@GetMapping("/mis-recolecciones-ciudadano")
+public ResponseEntity<List<RecoleccionDTO>> listarMisRecoleccionesCiudadano() {
+    UsuarioEntity ciudadano = obtenerUsuarioAutenticado();
+    List<RecoleccionDTO> recolecciones = recoleccionService.listarPorSolicitante(ciudadano.getIdUsuario());
+    return ResponseEntity.ok(recolecciones);
+}
+
+    // ===========================
+// LISTAR TODAS LAS RECOLECCIONES DEL RECOLECTOR AUTENTICADO (INCLUYE CANCELADAS)
+// ===========================
+@GetMapping("/mis-recolecciones/todas")
+public ResponseEntity<List<RecoleccionDTO>> listarMisRecoleccionesTodas() {
+    UsuarioEntity recolector = obtenerUsuarioAutenticado();
+    return ResponseEntity.ok(recoleccionService.listarTodasRecolector(recolector.getIdUsuario()));
+}
 
     // ===========================
     // ACTUALIZAR ESTADO

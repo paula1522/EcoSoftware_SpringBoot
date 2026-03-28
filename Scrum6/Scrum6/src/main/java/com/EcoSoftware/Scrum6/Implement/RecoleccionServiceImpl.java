@@ -2,7 +2,9 @@ package com.EcoSoftware.Scrum6.Implement;
 
 import com.EcoSoftware.Scrum6.DTO.RecoleccionDTO;
 import com.EcoSoftware.Scrum6.Entity.RecoleccionEntity;
+import com.EcoSoftware.Scrum6.Entity.RutaRecoleccionEntity;
 import com.EcoSoftware.Scrum6.Enums.EstadoRecoleccion;
+import com.EcoSoftware.Scrum6.Enums.EstadoRuta;
 import com.EcoSoftware.Scrum6.Exception.RecoleccionCanceladaException;
 import com.EcoSoftware.Scrum6.Repository.RecoleccionRepository;
 import com.EcoSoftware.Scrum6.Service.RecoleccionService;
@@ -28,6 +30,13 @@ public class RecoleccionServiceImpl implements RecoleccionService {
                 .toList();
 
     }
+    @Override
+public List<RecoleccionDTO> listarPorSolicitante(Long usuarioId) {
+    return recoleccionRepository.findBySolicitud_Usuario_IdUsuario(usuarioId)
+            .stream()
+            .map(this::convertirADTO)
+            .toList();
+}
 
     @Override
     public List<RecoleccionDTO> listarTodasRecolector(Long recolectorId) {
@@ -92,6 +101,16 @@ public class RecoleccionServiceImpl implements RecoleccionService {
                 .toList();
     }
 
+    @Override
+public List<RecoleccionDTO> listarPorRecolectorYEstado(Long recolectorId, EstadoRecoleccion estado) {
+    return recoleccionRepository.findByRecolector_IdUsuarioAndEstado(recolectorId, estado)
+            .stream()
+            .map(this::convertirADTO)
+            .toList();
+}
+
+    
+
     // ========================================================
     // CONTROL ESTRICTO DE CAMBIO DE ESTADO
     // ========================================================
@@ -99,8 +118,8 @@ public class RecoleccionServiceImpl implements RecoleccionService {
     @Transactional
     public RecoleccionDTO actualizarEstado(Long recoleccionId, EstadoRecoleccion nuevoEstado) {
 
-        RecoleccionEntity r = recoleccionRepository.findById(recoleccionId)
-                .orElseThrow(() -> new EntityNotFoundException("Recolección no encontrada"));
+           RecoleccionEntity r = recoleccionRepository.findByIdWithRelations(recoleccionId)
+            .orElseThrow(() -> new EntityNotFoundException("Recolección no encontrada"));
 
         EstadoRecoleccion anterior = r.getEstado();
 
@@ -134,7 +153,17 @@ public class RecoleccionServiceImpl implements RecoleccionService {
 
         if (nuevoEstado == EstadoRecoleccion.Completada && r.getFechaRecoleccion() == null) {
             r.setFechaRecoleccion(java.time.LocalDateTime.now());
-        }
+        }// En RecoleccionServiceImpl.actualizarEstado, después de guardar:
+if (nuevoEstado == EstadoRecoleccion.Completada && r.getRuta() != null) {
+    RutaRecoleccionEntity ruta = r.getRuta();
+    boolean todasCompletadas = ruta.getRecolecciones().stream()
+            .allMatch(rec -> rec.getEstado() == EstadoRecoleccion.Completada);
+    if (todasCompletadas) {
+        ruta.setEstado(EstadoRuta.FINALIZADA);
+        // Necesitas inyectar RutaRecoleccionRepository en este servicio
+        // rutaRepository.save(ruta);
+    }
+}
 
         return convertirADTO(r);
     }
@@ -224,6 +253,11 @@ public RecoleccionDTO actualizarRecoleccion(Long id, RecoleccionDTO dto) {
         dto.setObservaciones(entity.getObservaciones());
         dto.setEvidencia(entity.getEvidencia());
         dto.setFechaCreacionRecoleccion(entity.getFechaCreacionRecoleccion());
+        if (entity.getSolicitud() != null) {
+        dto.setDireccion(entity.getSolicitud().getUbicacion());
+        dto.setLatitud(entity.getSolicitud().getLatitude());
+        dto.setLongitud(entity.getSolicitud().getLongitude());
+    }
 
         return dto;
     }

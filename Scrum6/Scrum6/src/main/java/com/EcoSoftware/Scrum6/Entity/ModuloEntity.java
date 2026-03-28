@@ -1,5 +1,10 @@
 package com.EcoSoftware.Scrum6.Entity;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -25,6 +30,9 @@ public class ModuloEntity {
     private String duracion;
     private String descripcion;
     private String archivoPdfUrl;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode evaluacion;
 
     @ManyToOne
     @JoinColumn(name = "capacitacion_id")

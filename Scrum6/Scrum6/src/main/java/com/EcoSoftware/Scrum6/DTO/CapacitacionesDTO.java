@@ -1,5 +1,6 @@
 package com.EcoSoftware.Scrum6.DTO;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDate;
 import java.util.List;
 import com.EcoSoftware.Scrum6.Enums.EstadoCurso;
@@ -31,6 +32,7 @@ public class CapacitacionesDTO {
         private String duracion;
         private String descripcion;
         private String archivoPdfUrl;
+        private JsonNode evaluacion;
         private Long capacitacionId;
     }
 

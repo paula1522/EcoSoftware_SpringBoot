@@ -2,13 +2,15 @@ package com.EcoSoftware.Scrum6.Repository;
 
 import com.EcoSoftware.Scrum6.Entity.RecoleccionEntity;
 import com.EcoSoftware.Scrum6.Enums.EstadoRecoleccion;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @Repository
 public interface RecoleccionRepository extends JpaRepository<RecoleccionEntity, Long> {
@@ -18,8 +20,9 @@ public interface RecoleccionRepository extends JpaRepository<RecoleccionEntity, 
 
     // Recolecciones activas de un recolector
     List<RecoleccionEntity> findByRecolector_IdUsuarioAndEstadoNot(Long recolectorId, EstadoRecoleccion estado);
-
-    //
+List<RecoleccionEntity> findByRecolector_IdUsuarioAndEstado(Long recolectorId, EstadoRecoleccion estado);
+    // Buscar recolecciones por el ID del usuario que creó la solicitud
+List<RecoleccionEntity> findBySolicitud_Usuario_IdUsuario(Long usuarioId);
     List<RecoleccionEntity> findByRecolector_IdUsuario(Long recolectorId);
     // Recolecciones activas de una ruta
     List<RecoleccionEntity> findByRuta_IdRutaAndEstadoNot(Long rutaId, EstadoRecoleccion estado);
@@ -32,6 +35,11 @@ public interface RecoleccionRepository extends JpaRepository<RecoleccionEntity, 
             Long recolectorId,
             EstadoRecoleccion estado
     );
+  // Método con EntityGraph para cargar las relaciones necesarias
+    @EntityGraph(attributePaths = {"solicitud", "ruta", "recolector"})
+    @Query("SELECT r FROM RecoleccionEntity r WHERE r.idRecoleccion = :id")
+    Optional<RecoleccionEntity> findByIdWithRelations(@Param("id") Long id);
+
 
     // === DASHBOARDS OPTIMIZADOS ===
 

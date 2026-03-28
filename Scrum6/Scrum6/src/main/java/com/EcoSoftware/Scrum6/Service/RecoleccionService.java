@@ -13,6 +13,10 @@ public interface RecoleccionService {
     // Listar todas las recolecciones activas
     List<RecoleccionDTO> listarActivas();
 
+    List<RecoleccionDTO> listarPorRecolectorYEstado(Long recolectorId, EstadoRecoleccion estado);
+
+// Listar recolecciones de un ciudadano (por sus solicitudes)
+List<RecoleccionDTO> listarPorSolicitante(Long usuarioId);
     // Listar recolecciones activas de un recolector
     List<RecoleccionDTO> listarPorRecolector(Long recolectorId);
 
